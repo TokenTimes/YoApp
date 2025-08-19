@@ -16,7 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import ApiService from "../services/api";
 import SocketService from "../services/socket";
-import NotificationService from "../services/notifications";
+import ExpoNotificationService from "../services/expoNotifications";
 import SoundService from "../services/sound";
 import { StorageService } from "../utils/storage";
 
@@ -93,12 +93,14 @@ const MainScreen = ({ user, onLogout }) => {
 
   const setupNotificationListeners = () => {
     // Listen for notification responses (when user taps notification)
-    NotificationService.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data;
-      if (data.type === "yo") {
-        console.log("User tapped Yo notification from:", data.fromUser);
+    ExpoNotificationService.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data;
+        if (data.type === "yo") {
+          console.log("User tapped Yo notification from:", data.fromUser);
+        }
       }
-    });
+    );
   };
 
   const handleYoReceived = async (data) => {
@@ -112,7 +114,7 @@ const MainScreen = ({ user, onLogout }) => {
 
       // Show local notification
       console.log("📱 Showing local notification...");
-      await NotificationService.showYoNotification(data.from);
+      await ExpoNotificationService.showYoNotification(data.from);
 
       // Show in-app notification
       console.log("💬 Showing in-app notification...");
@@ -271,7 +273,8 @@ const MainScreen = ({ user, onLogout }) => {
           sendingYos.has(item.username) && styles.yoButtonSending,
         ]}
         onPress={() => handleSendYo(item.username)}
-        disabled={sendingYos.has(item.username)}>
+        disabled={sendingYos.has(item.username)}
+      >
         {sendingYos.has(item.username) ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
@@ -318,7 +321,8 @@ const MainScreen = ({ user, onLogout }) => {
                 );
               }
             }}
-            style={styles.testButton}>
+            style={styles.testButton}
+          >
             <Ionicons name="volume-high-outline" size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -341,7 +345,8 @@ const MainScreen = ({ user, onLogout }) => {
                   ? "#059669"
                   : "#6366f1",
             },
-          ]}>
+          ]}
+        >
           <Text style={styles.notificationText}>{yoNotification.message}</Text>
         </Animated.View>
       )}

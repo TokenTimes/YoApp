@@ -4,7 +4,7 @@
     "slug": "yo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-
+    "projectId": "a066546d-3901-4876-bed2-b92893253897",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
