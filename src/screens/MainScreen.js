@@ -10,6 +10,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
+  Vibration,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -155,8 +156,8 @@ const MainScreen = ({ user, onLogout }) => {
 
       SocketService.sendYo(user.username, toUsername);
 
-      // Play sound when sending Yo
-      await SoundService.playYoSound();
+      // Give subtle vibration feedback to sender (no sound)
+      Vibration.vibrate(50); // Quick 50ms vibration for sender feedback
 
       // Set a timeout to remove loading state if no confirmation comes back
       setTimeout(() => {
