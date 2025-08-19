@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Configure notification behavior
@@ -7,7 +8,9 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -16,6 +19,7 @@ class ExpoNotificationService {
     this.expoPushToken = null;
     this.notificationListener = null;
     this.responseListener = null;
+    this.notificationReceivedCallback = null;
   }
 
   async initialize() {
@@ -26,12 +30,75 @@ class ExpoNotificationService {
       const token = await this.registerForPushNotificationsAsync();
       this.expoPushToken = token;
 
+      // Set up notification listeners
+      this.setupNotificationListeners();
+
       console.log("✅ Expo notifications initialized, token:", token);
       return token;
     } catch (error) {
       console.error("❌ Error initializing Expo notifications:", error);
       return null;
     }
+  }
+
+  setupNotificationListeners() {
+    // Listen for notifications received while app is in foreground
+    this.notificationListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log("🔔 Notification received in foreground:", notification);
+        this.handleNotificationReceived(notification);
+      }
+    );
+
+    // Listen for notification responses (when user taps notification)
+    this.responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("👆 Notification response received:", response);
+        this.handleNotificationResponse(response);
+      });
+  }
+
+  async handleNotificationReceived(notification) {
+    try {
+      const data = notification.request.content.data;
+      if (data.type === "yo" && data.fromUser) {
+        console.log("🎯 Yo notification received from:", data.fromUser);
+
+        // Call the callback if set (MainScreen will set this)
+        if (this.notificationReceivedCallback) {
+          await this.notificationReceivedCallback({
+            from: data.fromUser,
+            timestamp: data.timestamp,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error handling notification:", error);
+    }
+  }
+
+  async handleNotificationResponse(response) {
+    try {
+      const data = response.notification.request.content.data;
+      if (data.type === "yo" && data.fromUser) {
+        console.log("👆 User tapped Yo notification from:", data.fromUser);
+
+        // If app was closed and user tapped notification, handle it
+        if (this.notificationReceivedCallback) {
+          await this.notificationReceivedCallback({
+            from: data.fromUser,
+            timestamp: data.timestamp,
+            fromTap: true,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error handling notification response:", error);
+    }
+  }
+
+  setNotificationReceivedCallback(callback) {
+    this.notificationReceivedCallback = callback;
   }
 
   async registerForPushNotificationsAsync() {
@@ -62,7 +129,17 @@ class ExpoNotificationService {
       }
 
       try {
-        token = (await Notifications.getExpoPushTokenAsync()).data;
+        // Get project ID from app config
+        const projectId =
+          Constants?.expoConfig?.extra?.eas?.projectId ??
+          Constants?.easConfig?.projectId;
+
+        if (!projectId) {
+          console.log("❌ Project ID not found in app config");
+          return null;
+        }
+
+        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
         console.log("✅ Got Expo push token:", token);
       } catch (error) {
         console.log("❌ Could not get push token:", error);

@@ -92,33 +92,31 @@ const MainScreen = ({ user, onLogout }) => {
   };
 
   const setupNotificationListeners = () => {
-    // Listen for notification responses (when user taps notification)
-    ExpoNotificationService.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data;
-        if (data.type === "yo") {
-          console.log("User tapped Yo notification from:", data.fromUser);
-        }
-      }
-    );
+    // Set up the callback for when notifications are received
+    ExpoNotificationService.setNotificationReceivedCallback(handleYoReceived);
   };
 
   const handleYoReceived = async (data) => {
     try {
       console.log("🎯 YO RECEIVED! From:", data.from, "Data:", data);
 
-      // Play sound and vibration
+      // Play sound and vibration (always play sound when receiving Yo)
       console.log("🔊 About to play Yo sound...");
       await SoundService.playYoSound();
       console.log("✅ Yo sound playback completed");
 
-      // Show local notification
-      console.log("📱 Showing local notification...");
-      await ExpoNotificationService.showYoNotification(data.from);
+      // Show in-app toast notification (only if app is in foreground)
+      if (!data.fromTap) {
+        console.log("💬 Showing in-app toast notification...");
+        showNotification(`${data.from} sent you a Yo!`, "yo");
+      }
 
-      // Show in-app notification
-      console.log("💬 Showing in-app notification...");
-      showNotification(`${data.from} sent you a Yo!`, "yo");
+      // If this came from a push notification tap, don't show local notification
+      // (since the user already saw the push notification)
+      if (!data.fromTap) {
+        console.log("📱 Showing local notification...");
+        await ExpoNotificationService.showYoNotification(data.from);
+      }
 
       // Refresh friends list to update counters
       console.log("🔄 Refreshing friends list...");

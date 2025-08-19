@@ -18,14 +18,15 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~53.0.20",
     "expo-av": "^15.1.7",
-    "expo-constants": "^17.1.7",
+    "expo-constants": "~17.1.7",
     "expo-device": "^7.1.4",
     "expo-font": "^13.3.2",
     "expo-notifications": "^0.31.4",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.5",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "expo-dev-client": "~5.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

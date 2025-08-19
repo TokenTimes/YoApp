@@ -96,11 +96,22 @@ io.on("connection", (socket) => {
             fromUser
           );
           console.log("Expo notification result:", notificationResult);
+
+          // Handle DeviceNotRegistered error by removing invalid token
+          if (notificationResult.shouldRemoveToken) {
+            console.log(`🚫 Removing invalid push token for ${toUser}`);
+            await User.findOneAndUpdate(
+              { username: toUser },
+              { $unset: { expoPushToken: 1 } }
+            );
+          }
         } catch (error) {
           console.error("Error sending Expo notification:", error);
         }
       } else {
-        console.log(`No Expo push token for ${toUser} - skipping push notification`);
+        console.log(
+          `No Expo push token for ${toUser} - skipping push notification`
+        );
       }
 
       // Send confirmation back to sender
