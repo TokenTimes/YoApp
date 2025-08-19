@@ -19,15 +19,40 @@ class SoundService {
         playThroughEarpieceAndroid: false,
       });
 
-      // Load the custom Yo sound
-      const { sound } = await Audio.Sound.createAsync(
-        require("../../assets/sounds/yo-sound.wav"),
-        {
-          shouldPlay: false,
-          isLooping: false,
-          volume: 1.0,
-        }
-      );
+      // Load the custom Yo sound - try M4A format first (the actual format)
+      console.log("🎵 Loading yo-sound.m4a file...");
+      let sound;
+      try {
+        const result = await Audio.Sound.createAsync(
+          require("../../assets/sounds/yo-sound.m4a"),
+          {
+            shouldPlay: false,
+            isLooping: false,
+            volume: 1.0,
+          },
+          (status) => {
+            console.log("🎵 M4A Sound loading status:", status);
+          }
+        );
+        sound = result.sound;
+        console.log("✅ M4A sound loaded successfully");
+      } catch (m4aError) {
+        console.log("❌ M4A failed, trying WAV format:", m4aError.message);
+        // Fallback to WAV format
+        const result = await Audio.Sound.createAsync(
+          require("../../assets/sounds/yo-sound.wav"),
+          {
+            shouldPlay: false,
+            isLooping: false,
+            volume: 1.0,
+          },
+          (status) => {
+            console.log("🎵 WAV Sound loading status:", status);
+          }
+        );
+        sound = result.sound;
+        console.log("✅ WAV sound loaded successfully");
+      }
 
       this.sound = sound;
       this.isLoaded = true;

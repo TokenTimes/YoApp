@@ -57,7 +57,7 @@ const MainScreen = ({ user, onLogout }) => {
   const setupSocketListeners = () => {
     // Listen for received Yos
     SocketService.onYoReceived((data) => {
-      console.log("Yo received from:", data.from);
+      console.log("📨 Socket event 'yoReceived' triggered! Data:", data);
       handleYoReceived(data);
     });
 
@@ -103,19 +103,28 @@ const MainScreen = ({ user, onLogout }) => {
 
   const handleYoReceived = async (data) => {
     try {
+      console.log("🎯 YO RECEIVED! From:", data.from, "Data:", data);
+
       // Play sound and vibration
+      console.log("🔊 About to play Yo sound...");
       await SoundService.playYoSound();
+      console.log("✅ Yo sound playback completed");
 
       // Show local notification
+      console.log("📱 Showing local notification...");
       await NotificationService.showYoNotification(data.from);
 
       // Show in-app notification
+      console.log("💬 Showing in-app notification...");
       showNotification(`${data.from} sent you a Yo!`, "yo");
 
       // Refresh friends list to update counters
+      console.log("🔄 Refreshing friends list...");
       await loadFriends();
+
+      console.log("✅ Yo received handling completed successfully");
     } catch (error) {
-      console.error("Error handling received Yo:", error);
+      console.error("❌ Error handling received Yo:", error);
     }
   };
 
@@ -154,7 +163,9 @@ const MainScreen = ({ user, onLogout }) => {
         );
       }
 
+      console.log(`📤 SENDING YO from ${user.username} to ${toUsername}`);
       SocketService.sendYo(user.username, toUsername);
+      console.log(`✅ Yo send request completed`);
 
       // Give subtle vibration feedback to sender (no sound)
       Vibration.vibrate(50); // Quick 50ms vibration for sender feedback
@@ -289,9 +300,31 @@ const MainScreen = ({ user, onLogout }) => {
           <Text style={styles.welcomeText}>Welcome back,</Text>
           <Text style={styles.usernameText}>{user.username}!</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            onPress={async () => {
+              console.log("🧪 MANUAL SOUND TEST");
+              try {
+                await SoundService.playYoSound();
+                Alert.alert(
+                  "Sound Test",
+                  "Sound test completed! Check console for details."
+                );
+              } catch (error) {
+                console.error("Sound test failed:", error);
+                Alert.alert(
+                  "Sound Test",
+                  `Sound test failed: ${error.message}`
+                );
+              }
+            }}
+            style={styles.testButton}>
+            <Ionicons name="volume-high-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Notification */}
@@ -375,6 +408,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 24,
     fontWeight: "bold",
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  testButton: {
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
   },
   logoutButton: {
     padding: 8,
