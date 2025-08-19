@@ -5,7 +5,7 @@ class SocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
-    this.serverURL = "http://localhost:3000";
+    this.serverURL = "http://localhost:3001";
   }
 
   connect(username) {
@@ -84,4 +84,3 @@ class SocketService {
 }
 
 export default new SocketService();
-

@@ -322,4 +322,3 @@ This project is open source and available under the [MIT License](LICENSE).
 **Happy Yo-ing! 🎉**
 
 For questions or support, please open an issue in the repository.
-
