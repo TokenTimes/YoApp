@@ -42,20 +42,43 @@ io.on("connection", (socket) => {
   // User joins with username
   socket.on("join", async (data) => {
     try {
-      const { username, expoPushToken } = data;
+      console.log("🔍 DEBUG: Received join data:", data);
+
+      // Handle both old format (string) and new format (object)
+      let username, expoPushToken;
+      if (typeof data === "string") {
+        username = data;
+        expoPushToken = null;
+        console.log("🔍 DEBUG: Old format - username only:", username);
+      } else {
+        username = data.username;
+        expoPushToken = data.expoPushToken;
+        console.log(
+          "🔍 DEBUG: New format - username:",
+          username,
+          "token:",
+          expoPushToken ? "present" : "null"
+        );
+      }
+
       socket.username = username;
       activeUsers.set(username, socket.id);
 
       // Update user online status AND push token automatically
-      await User.findOneAndUpdate(
-        { username },
-        {
-          isOnline: true,
-          lastSeen: new Date(),
-          ...(expoPushToken && { expoPushToken }), // Only update if token provided
-        },
-        { upsert: true, new: true }
-      );
+      const updateData = {
+        isOnline: true,
+        lastSeen: new Date(),
+      };
+
+      if (expoPushToken) {
+        updateData.expoPushToken = expoPushToken;
+        console.log("🔍 DEBUG: Will update push token for", username);
+      }
+
+      await User.findOneAndUpdate({ username }, updateData, {
+        upsert: true,
+        new: true,
+      });
 
       socket.join(username);
 
@@ -282,6 +305,24 @@ app.get("/api/debug/users", async (req, res) => {
     }));
 
     res.json(usersWithTokenInfo);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test endpoint to manually set push token for debugging
+app.post("/api/debug/set-token/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { token } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { username },
+      { expoPushToken: token },
+      { new: true }
+    );
+
+    res.json({ success: true, user: user.username, tokenSet: !!token });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
