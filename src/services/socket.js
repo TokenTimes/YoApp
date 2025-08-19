@@ -81,6 +81,18 @@ class SocketService {
     }
   }
 
+  onFriendRequestReceived(callback) {
+    if (this.socket) {
+      this.socket.on("friendRequestReceived", callback);
+    }
+  }
+
+  onFriendRequestAccepted(callback) {
+    if (this.socket) {
+      this.socket.on("friendRequestAccepted", callback);
+    }
+  }
+
   removeAllListeners() {
     if (this.socket) {
       this.socket.removeAllListeners();

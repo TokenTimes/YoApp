@@ -19,6 +19,8 @@ import SocketService from "../services/socket";
 import PushNotificationService from "../services/pushNotifications";
 import SoundService from "../services/sound";
 import { StorageService } from "../utils/storage";
+import FriendSearchScreen from "./FriendSearchScreen";
+import FriendRequestsScreen from "./FriendRequestsScreen";
 
 const MainScreen = ({ user, onLogout }) => {
   const [friends, setFriends] = useState([]);
@@ -26,6 +28,7 @@ const MainScreen = ({ user, onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [yoNotification, setYoNotification] = useState(null);
   const [sendingYos, setSendingYos] = useState(new Set());
+  const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search", "requests"
 
   const notificationOpacity = useRef(new Animated.Value(0)).current;
 
@@ -130,6 +133,17 @@ const MainScreen = ({ user, onLogout }) => {
     SocketService.onUserOffline((username) => {
       updateUserStatus(username, false);
     });
+
+    // Listen for friend request notifications
+    SocketService.onFriendRequestReceived((data) => {
+      showNotification(`${data.from} sent you a friend request!`, "success");
+    });
+
+    SocketService.onFriendRequestAccepted((data) => {
+      showNotification(`${data.by} accepted your friend request!`, "success");
+      // Refresh friends list to show the new friend
+      loadFriends();
+    });
   };
 
   const setupNotificationListeners = () => {
@@ -171,9 +185,8 @@ const MainScreen = ({ user, onLogout }) => {
 
   const loadFriends = async () => {
     try {
-      const users = await ApiService.getAllUsers();
-      // Filter out current user
-      const friendsList = users.filter((u) => u.username !== user.username);
+      // Load only friends instead of all users
+      const friendsList = await ApiService.getFriends(user.username);
       setFriends(friendsList);
     } catch (error) {
       console.error("Error loading friends:", error);
@@ -305,8 +318,7 @@ const MainScreen = ({ user, onLogout }) => {
           sendingYos.has(item.username) && styles.yoButtonSending,
         ]}
         onPress={() => handleSendYo(item.username)}
-        disabled={sendingYos.has(item.username)}
-      >
+        disabled={sendingYos.has(item.username)}>
         {sendingYos.has(item.username) ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
@@ -325,6 +337,25 @@ const MainScreen = ({ user, onLogout }) => {
     );
   }
 
+  // Handle screen navigation
+  if (currentScreen === "search") {
+    return (
+      <FriendSearchScreen
+        user={user}
+        onBack={() => setCurrentScreen("friends")}
+      />
+    );
+  }
+
+  if (currentScreen === "requests") {
+    return (
+      <FriendRequestsScreen
+        user={user}
+        onBack={() => setCurrentScreen("friends")}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#6366f1" />
@@ -337,25 +368,14 @@ const MainScreen = ({ user, onLogout }) => {
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            onPress={async () => {
-              console.log("🧪 MANUAL SOUND TEST");
-              try {
-                await SoundService.playYoSound();
-                Alert.alert(
-                  "Sound Test",
-                  "Sound test completed! Check console for details."
-                );
-              } catch (error) {
-                console.error("Sound test failed:", error);
-                Alert.alert(
-                  "Sound Test",
-                  `Sound test failed: ${error.message}`
-                );
-              }
-            }}
-            style={styles.testButton}
-          >
-            <Ionicons name="volume-high-outline" size={20} color="#fff" />
+            onPress={() => setCurrentScreen("requests")}
+            style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setCurrentScreen("search")}
+            style={styles.iconButton}>
+            <Ionicons name="person-add-outline" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="#fff" />
@@ -377,8 +397,7 @@ const MainScreen = ({ user, onLogout }) => {
                   ? "#059669"
                   : "#6366f1",
             },
-          ]}
-        >
+          ]}>
           <Text style={styles.notificationText}>{yoNotification.message}</Text>
         </Animated.View>
       )}
@@ -392,7 +411,7 @@ const MainScreen = ({ user, onLogout }) => {
             <Ionicons name="people-outline" size={64} color="#94a3b8" />
             <Text style={styles.emptyText}>No friends yet</Text>
             <Text style={styles.emptySubtext}>
-              Ask your friends to sign up and start sending Yos!
+              Tap the + button to search and add friends!
             </Text>
           </View>
         ) : (
@@ -451,7 +470,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  testButton: {
+  iconButton: {
     padding: 8,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 8,

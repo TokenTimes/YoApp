@@ -100,6 +100,21 @@ io.on("connection", (socket) => {
     try {
       const { fromUser, toUser } = data;
 
+      // Check if users are friends before allowing Yo
+      const senderUser = await User.findOne({ username: fromUser });
+      if (!senderUser) {
+        socket.emit("yoSent", { success: false, error: "Sender not found" });
+        return;
+      }
+
+      if (!senderUser.friends?.includes(toUser)) {
+        socket.emit("yoSent", {
+          success: false,
+          error: "Can only send Yos to friends",
+        });
+        return;
+      }
+
       // Save Yo to database
       const targetUser = await User.findOneAndUpdate(
         { username: toUser },
@@ -331,6 +346,344 @@ app.post("/api/debug/set-token/:username", async (req, res) => {
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date() });
+});
+
+// =====================
+// FRIENDS API ENDPOINTS
+// =====================
+
+// Search users by username (excluding current user and existing friends)
+app.post("/api/friends/search", async (req, res) => {
+  try {
+    const { username, searchQuery } = req.body;
+
+    if (!username || !searchQuery) {
+      return res
+        .status(400)
+        .json({ error: "Username and search query are required" });
+    }
+
+    // Get current user to check existing friends
+    const currentUser = await User.findOne({ username });
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const existingFriends = currentUser.friends || [];
+
+    // Search for users matching the query (case insensitive)
+    const searchResults = await User.find(
+      {
+        username: {
+          $regex: searchQuery,
+          $options: "i",
+          $ne: username, // Exclude current user
+        },
+      },
+      "username isOnline lastSeen"
+    )
+      .limit(20)
+      .sort({ username: 1 });
+
+    // Filter out existing friends and add friendship status
+    const filteredResults = searchResults.map((user) => ({
+      username: user.username,
+      isOnline: user.isOnline,
+      lastSeen: user.lastSeen,
+      isFriend: existingFriends.includes(user.username),
+      hasReceivedRequest:
+        currentUser.friendRequests?.sent?.some(
+          (req) => req.to === user.username && req.status === "pending"
+        ) || false,
+      hasSentRequest:
+        currentUser.friendRequests?.received?.some(
+          (req) => req.from === user.username && req.status === "pending"
+        ) || false,
+    }));
+
+    res.json(filteredResults);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send friend request
+app.post("/api/friends/request", async (req, res) => {
+  try {
+    const { fromUser, toUser } = req.body;
+
+    if (!fromUser || !toUser) {
+      return res
+        .status(400)
+        .json({ error: "Both fromUser and toUser are required" });
+    }
+
+    if (fromUser === toUser) {
+      return res
+        .status(400)
+        .json({ error: "Cannot send friend request to yourself" });
+    }
+
+    // Check if users exist
+    const [sender, recipient] = await Promise.all([
+      User.findOne({ username: fromUser }),
+      User.findOne({ username: toUser }),
+    ]);
+
+    if (!sender || !recipient) {
+      return res.status(404).json({ error: "One or both users not found" });
+    }
+
+    // Check if already friends
+    if (sender.friends?.includes(toUser)) {
+      return res.status(400).json({ error: "Already friends with this user" });
+    }
+
+    // Check if request already exists
+    const existingRequest = sender.friendRequests?.sent?.some(
+      (req) => req.to === toUser && req.status === "pending"
+    );
+
+    if (existingRequest) {
+      return res.status(400).json({ error: "Friend request already sent" });
+    }
+
+    // Add to sender's sent requests
+    await User.findOneAndUpdate(
+      { username: fromUser },
+      {
+        $push: {
+          "friendRequests.sent": {
+            to: toUser,
+            timestamp: new Date(),
+            status: "pending",
+          },
+        },
+      }
+    );
+
+    // Add to recipient's received requests
+    await User.findOneAndUpdate(
+      { username: toUser },
+      {
+        $push: {
+          "friendRequests.received": {
+            from: fromUser,
+            timestamp: new Date(),
+            status: "pending",
+          },
+        },
+      }
+    );
+
+    // Send real-time notification to recipient if online
+    const recipientSocketId = activeUsers.get(toUser);
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("friendRequestReceived", {
+        from: fromUser,
+        timestamp: new Date(),
+      });
+    }
+
+    res.json({ success: true, message: "Friend request sent successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Accept friend request
+app.post("/api/friends/accept", async (req, res) => {
+  try {
+    const { username, fromUser } = req.body;
+
+    if (!username || !fromUser) {
+      return res
+        .status(400)
+        .json({ error: "Username and fromUser are required" });
+    }
+
+    // Update both users' friend requests and add to friends list
+    const [updatedRecipient, updatedSender] = await Promise.all([
+      // Update recipient (accepting user)
+      User.findOneAndUpdate(
+        {
+          username,
+          "friendRequests.received": {
+            $elemMatch: { from: fromUser, status: "pending" },
+          },
+        },
+        {
+          $set: { "friendRequests.received.$.status": "accepted" },
+          $addToSet: { friends: fromUser },
+        },
+        { new: true }
+      ),
+      // Update sender
+      User.findOneAndUpdate(
+        {
+          username: fromUser,
+          "friendRequests.sent": {
+            $elemMatch: { to: username, status: "pending" },
+          },
+        },
+        {
+          $set: { "friendRequests.sent.$.status": "accepted" },
+          $addToSet: { friends: username },
+        },
+        { new: true }
+      ),
+    ]);
+
+    if (!updatedRecipient || !updatedSender) {
+      return res
+        .status(404)
+        .json({ error: "Friend request not found or already processed" });
+    }
+
+    // Send real-time notification to sender if online
+    const senderSocketId = activeUsers.get(fromUser);
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("friendRequestAccepted", {
+        by: username,
+        timestamp: new Date(),
+      });
+    }
+
+    res.json({ success: true, message: "Friend request accepted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reject friend request
+app.post("/api/friends/reject", async (req, res) => {
+  try {
+    const { username, fromUser } = req.body;
+
+    if (!username || !fromUser) {
+      return res
+        .status(400)
+        .json({ error: "Username and fromUser are required" });
+    }
+
+    // Update both users' friend requests
+    const [updatedRecipient, updatedSender] = await Promise.all([
+      // Update recipient (rejecting user)
+      User.findOneAndUpdate(
+        {
+          username,
+          "friendRequests.received": {
+            $elemMatch: { from: fromUser, status: "pending" },
+          },
+        },
+        {
+          $set: { "friendRequests.received.$.status": "rejected" },
+        },
+        { new: true }
+      ),
+      // Update sender
+      User.findOneAndUpdate(
+        {
+          username: fromUser,
+          "friendRequests.sent": {
+            $elemMatch: { to: username, status: "pending" },
+          },
+        },
+        {
+          $set: { "friendRequests.sent.$.status": "rejected" },
+        },
+        { new: true }
+      ),
+    ]);
+
+    if (!updatedRecipient || !updatedSender) {
+      return res
+        .status(404)
+        .json({ error: "Friend request not found or already processed" });
+    }
+
+    res.json({ success: true, message: "Friend request rejected" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove friend
+app.delete("/api/friends/:friendUsername", async (req, res) => {
+  try {
+    const { username } = req.body;
+    const { friendUsername } = req.params;
+
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    // Remove from both users' friends lists
+    await Promise.all([
+      User.findOneAndUpdate(
+        { username },
+        { $pull: { friends: friendUsername } }
+      ),
+      User.findOneAndUpdate(
+        { username: friendUsername },
+        { $pull: { friends: username } }
+      ),
+    ]);
+
+    res.json({ success: true, message: "Friend removed successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user's friends list
+app.get("/api/friends/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username }, "friends");
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get detailed info about friends
+    const friends = await User.find(
+      { username: { $in: user.friends || [] } },
+      "username isOnline totalYosReceived lastSeen"
+    ).sort({ username: 1 });
+
+    res.json(friends);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get friend requests
+app.get("/api/friends/requests/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username }, "friendRequests");
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Filter only pending requests
+    const pendingReceived =
+      user.friendRequests?.received?.filter(
+        (req) => req.status === "pending"
+      ) || [];
+    const pendingSent =
+      user.friendRequests?.sent?.filter((req) => req.status === "pending") ||
+      [];
+
+    res.json({
+      received: pendingReceived,
+      sent: pendingSent,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = config.PORT;

@@ -100,12 +100,11 @@ const LoginScreen = ({ onLogin }) => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+      behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <StatusBar style="light" backgroundColor="#6366f1" />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Yo!</Text>
+        <Text style={styles.title}>Hello!</Text>
         <Text style={styles.subtitle}>Send instant Yos to your friends</Text>
       </View>
 
@@ -126,8 +125,7 @@ const LoginScreen = ({ onLogin }) => {
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={() => handleLogin()}
-          disabled={loading}
-        >
+          disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (

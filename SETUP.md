@@ -71,7 +71,7 @@ Example:
 const API_BASE_URL = "http://localhost:3000/api";
 
 // To (using your IP):
-const API_BASE_URL = "http://192.168.1.100:3000/api";
+// const API_BASE_URL = "http://192.168.1.100:3000/api";
 ```
 
 ## 🎯 Quick Test
@@ -100,4 +100,3 @@ const API_BASE_URL = "http://192.168.1.100:3000/api";
 - Test on a physical device (simulators don't support push notifications)
 
 Need help? Check the full [README.md](README.md) for detailed instructions!
-

@@ -62,6 +62,60 @@ class ApiService {
   async healthCheck() {
     return this.request("/health");
   }
+
+  // ==================
+  // FRIENDS MANAGEMENT
+  // ==================
+
+  // Search users by username
+  async searchUsers(username, searchQuery) {
+    return this.request("/friends/search", {
+      method: "POST",
+      body: { username, searchQuery },
+    });
+  }
+
+  // Send friend request
+  async sendFriendRequest(fromUser, toUser) {
+    return this.request("/friends/request", {
+      method: "POST",
+      body: { fromUser, toUser },
+    });
+  }
+
+  // Accept friend request
+  async acceptFriendRequest(username, fromUser) {
+    return this.request("/friends/accept", {
+      method: "POST",
+      body: { username, fromUser },
+    });
+  }
+
+  // Reject friend request
+  async rejectFriendRequest(username, fromUser) {
+    return this.request("/friends/reject", {
+      method: "POST",
+      body: { username, fromUser },
+    });
+  }
+
+  // Remove friend
+  async removeFriend(username, friendUsername) {
+    return this.request(`/friends/${friendUsername}`, {
+      method: "DELETE",
+      body: { username },
+    });
+  }
+
+  // Get user's friends list
+  async getFriends(username) {
+    return this.request(`/friends/${username}`);
+  }
+
+  // Get friend requests
+  async getFriendRequests(username) {
+    return this.request(`/friends/requests/${username}`);
+  }
 }
 
 export default new ApiService();
