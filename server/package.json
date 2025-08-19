@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "MONGODB_URI=\"mongodb+srv://oracles:eSSnfamcVMMkXZNr@yo.qofhg2y.mongodb.net/yoapp?retryWrites=true&w=majority\" node index.js",
+    "dev": "MONGODB_URI=\"mongodb+srv://oracles:eSSnfamcVMMkXZNr@yo.qofhg2y.mongodb.net/yoapp?retryWrites=true&w=majority\" nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
