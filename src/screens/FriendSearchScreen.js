@@ -15,7 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import ApiService from "../services/api";
 
-const FriendSearchScreen = ({ user, onBack }) => {
+const FriendSearchScreen = ({ user, onBack, onRequestSent }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,6 +59,11 @@ const FriendSearchScreen = ({ user, onBack }) => {
             : result
         )
       );
+
+      // Notify parent component about the sent request
+      if (onRequestSent) {
+        onRequestSent();
+      }
     } catch (error) {
       console.error("Friend request error:", error);
       Alert.alert("Error", error.message || "Failed to send friend request");

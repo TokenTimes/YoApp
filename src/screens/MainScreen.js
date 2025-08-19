@@ -29,6 +29,7 @@ const MainScreen = ({ user, onLogout }) => {
   const [yoNotification, setYoNotification] = useState(null);
   const [sendingYos, setSendingYos] = useState(new Set());
   const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search", "requests"
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   const notificationOpacity = useRef(new Animated.Value(0)).current;
 
@@ -45,7 +46,7 @@ const MainScreen = ({ user, onLogout }) => {
   const initializeMainScreen = async () => {
     try {
       await SoundService.initializeSound();
-      await loadFriends();
+      await Promise.all([loadFriends(), loadPendingRequestsCount()]);
 
       // Always ensure we have a fresh push token
       let expoPushToken = await StorageService.getExpoPushToken();
@@ -137,6 +138,8 @@ const MainScreen = ({ user, onLogout }) => {
     // Listen for friend request notifications
     SocketService.onFriendRequestReceived((data) => {
       showNotification(`${data.from} sent you a friend request!`, "success");
+      // Update the pending requests count
+      loadPendingRequestsCount();
     });
 
     SocketService.onFriendRequestAccepted((data) => {
@@ -191,6 +194,15 @@ const MainScreen = ({ user, onLogout }) => {
     } catch (error) {
       console.error("Error loading friends:", error);
       Alert.alert("Error", "Failed to load friends. Please try again.");
+    }
+  };
+
+  const loadPendingRequestsCount = async () => {
+    try {
+      const requests = await ApiService.getFriendRequests(user.username);
+      setPendingRequestsCount(requests.received.length);
+    } catch (error) {
+      console.error("Error loading friend requests count:", error);
     }
   };
 
@@ -290,7 +302,7 @@ const MainScreen = ({ user, onLogout }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadFriends();
+    await Promise.all([loadFriends(), loadPendingRequestsCount()]);
     setRefreshing(false);
   };
 
@@ -342,7 +354,15 @@ const MainScreen = ({ user, onLogout }) => {
     return (
       <FriendSearchScreen
         user={user}
-        onBack={() => setCurrentScreen("friends")}
+        onBack={() => {
+          setCurrentScreen("friends");
+          // Refresh data when coming back from search
+          loadPendingRequestsCount();
+        }}
+        onRequestSent={() => {
+          // No need to update anything locally since the request was sent to another user
+          // The receiving user will get a socket notification
+        }}
       />
     );
   }
@@ -351,7 +371,15 @@ const MainScreen = ({ user, onLogout }) => {
     return (
       <FriendRequestsScreen
         user={user}
-        onBack={() => setCurrentScreen("friends")}
+        onBack={() => {
+          setCurrentScreen("friends");
+          // Refresh data when coming back from requests
+          Promise.all([loadFriends(), loadPendingRequestsCount()]);
+        }}
+        onRequestsChanged={() => {
+          // Immediately update friends list and badge count when requests are processed
+          Promise.all([loadFriends(), loadPendingRequestsCount()]);
+        }}
       />
     );
   }
@@ -371,6 +399,13 @@ const MainScreen = ({ user, onLogout }) => {
             onPress={() => setCurrentScreen("requests")}
             style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={22} color="#fff" />
+            {pendingRequestsCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>
+                  {pendingRequestsCount > 9 ? "9+" : pendingRequestsCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setCurrentScreen("search")}
@@ -474,6 +509,25 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 8,
+    position: "relative",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#ef4444",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#6366f1",
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 11,
+    fontWeight: "bold",
   },
   logoutButton: {
     padding: 8,

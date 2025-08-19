@@ -15,7 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import ApiService from "../services/api";
 
-const FriendRequestsScreen = ({ user, onBack }) => {
+const FriendRequestsScreen = ({ user, onBack, onRequestsChanged }) => {
   const [friendRequests, setFriendRequests] = useState({
     received: [],
     sent: [],
@@ -61,6 +61,11 @@ const FriendRequestsScreen = ({ user, onBack }) => {
         ...prev,
         received: prev.received.filter((req) => req.from !== fromUser),
       }));
+
+      // Notify parent component about the change
+      if (onRequestsChanged) {
+        onRequestsChanged();
+      }
     } catch (error) {
       console.error("Accept request error:", error);
       Alert.alert("Error", error.message || "Failed to accept friend request");
@@ -95,6 +100,11 @@ const FriendRequestsScreen = ({ user, onBack }) => {
                 ...prev,
                 received: prev.received.filter((req) => req.from !== fromUser),
               }));
+
+              // Notify parent component about the change
+              if (onRequestsChanged) {
+                onRequestsChanged();
+              }
             } catch (error) {
               console.error("Reject request error:", error);
               Alert.alert(
