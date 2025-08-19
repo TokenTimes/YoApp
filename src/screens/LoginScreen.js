@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import ApiService from "../services/api";
-import FirebaseService from "../services/firebase";
+
 import { StorageService } from "../utils/storage";
 
 const LoginScreen = ({ onLogin }) => {
@@ -53,15 +53,14 @@ const LoginScreen = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // Initialize Firebase and get FCM token
-      await FirebaseService.initialize();
-      const fcmToken = FirebaseService.getFCMToken();
+      // Register for push notifications
+      const expoPushToken =
+        await NotificationService.registerForPushNotificationsAsync();
 
       // Login/register user
       const response = await ApiService.loginUser(
         usernameToLogin.trim(),
-        null, // expoPushToken (deprecated)
-        fcmToken
+        expoPushToken
       );
 
       if (response.success) {
@@ -102,8 +101,7 @@ const LoginScreen = ({ onLogin }) => {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+      behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <StatusBar style="light" backgroundColor="#6366f1" />
 
       <View style={styles.header}>
@@ -128,8 +126,7 @@ const LoginScreen = ({ onLogin }) => {
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={() => handleLogin()}
-          disabled={loading}
-        >
+          disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
