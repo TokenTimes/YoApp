@@ -1,11 +1,12 @@
 // Socket.IO service for real-time communication
 import io from "socket.io-client";
+import { SOCKET_SERVER_URL } from '../config/network';
 
 class SocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
-    this.serverURL = "http://localhost:3001";
+    this.serverURL = SOCKET_SERVER_URL;
   }
 
   connect(username) {

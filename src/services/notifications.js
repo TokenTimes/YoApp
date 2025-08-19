@@ -48,13 +48,16 @@ class NotificationService {
 
         // Try to get push token with projectId
         try {
-          const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
-                           Constants.expoConfig?.projectId || 
-                           "yo-app-mobile";
-          
-          token = (await Notifications.getExpoPushTokenAsync({
-            projectId: projectId,
-          })).data;
+          const projectId =
+            Constants.expoConfig?.extra?.eas?.projectId ||
+            Constants.expoConfig?.projectId ||
+            "yo-app-mobile";
+
+          token = (
+            await Notifications.getExpoPushTokenAsync({
+              projectId: projectId,
+            })
+          ).data;
           console.log("Expo Push Token:", token);
         } catch (tokenError) {
           console.log("Could not get push token:", tokenError.message);
@@ -108,4 +111,3 @@ class NotificationService {
 }
 
 export default new NotificationService();
-
