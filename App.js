@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import Toast from "react-native-toast-message";
+
 import LoginScreen from "./src/screens/LoginScreen";
 import MainScreen from "./src/screens/MainScreen";
 import { StorageService } from "./src/utils/storage";
@@ -54,7 +54,6 @@ export default function App() {
       ) : (
         <LoginScreen onLogin={handleLogin} />
       )}
-      <Toast />
     </View>
   );
 }

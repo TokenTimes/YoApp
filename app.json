@@ -34,14 +34,14 @@
       "API_URL": null
     },
     "notification": {
-      "icon": "./assets/notification-icon.png",
+      "icon": "./assets/icon.png",
       "color": "#6366f1"
     },
     "plugins": [
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/icon.png",
           "color": "#6366f1",
           "sounds": ["./assets/sounds/yo-sound.wav"]
         }
