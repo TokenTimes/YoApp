@@ -9,7 +9,7 @@ class SocketService {
     this.serverURL = SOCKET_SERVER_URL;
   }
 
-  connect(username) {
+  connect(username, expoPushToken = null) {
     if (this.socket) {
       this.disconnect();
     }
@@ -21,7 +21,8 @@ class SocketService {
     this.socket.on("connect", () => {
       console.log(`✅ Connected to server at ${this.serverURL}`);
       this.isConnected = true;
-      this.socket.emit("join", username);
+      // Send both username and push token to server
+      this.socket.emit("join", { username, expoPushToken });
     });
 
     this.socket.on("disconnect", (reason) => {

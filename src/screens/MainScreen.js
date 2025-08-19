@@ -44,8 +44,9 @@ const MainScreen = ({ user, onLogout }) => {
       await SoundService.initializeSound();
       await loadFriends();
 
-      // Connect to socket
-      SocketService.connect(user.username);
+      // Get push token and connect to socket
+      const expoPushToken = await StorageService.getExpoPushToken();
+      SocketService.connect(user.username, expoPushToken);
     } catch (error) {
       console.error("Error initializing main screen:", error);
       Alert.alert("Error", "Failed to initialize. Please try again.");
