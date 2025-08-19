@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import ApiService from "../services/api";
-import ExpoNotificationService from "../services/expoNotifications";
+
 import { StorageService } from "../utils/storage";
 
 const LoginScreen = ({ onLogin }) => {
@@ -53,8 +53,9 @@ const LoginScreen = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // Initialize Expo notifications and get push token
-      const expoPushToken = await ExpoNotificationService.initialize();
+      // Register for push notifications
+      const expoPushToken =
+        await NotificationService.registerForPushNotificationsAsync();
 
       // Login/register user
       const response = await ApiService.loginUser(
@@ -66,8 +67,8 @@ const LoginScreen = ({ onLogin }) => {
         // Save user data locally
         await StorageService.saveUsername(usernameToLogin.trim());
         await StorageService.saveUserData(response.user);
-        if (expoPushToken) {
-          await StorageService.saveExpoPushToken(expoPushToken);
+        if (fcmToken) {
+          await StorageService.saveExpoPushToken(fcmToken); // Reuse storage key
         }
 
         // Call parent callback to navigate to main screen

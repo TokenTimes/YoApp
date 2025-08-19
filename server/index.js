@@ -100,9 +100,7 @@ io.on("connection", (socket) => {
           console.error("Error sending Expo notification:", error);
         }
       } else {
-        console.log(
-          `No Expo push token for ${toUser} - skipping push notification`
-        );
+        console.log(`No Expo push token for ${toUser} - skipping push notification`);
       }
 
       // Send confirmation back to sender
