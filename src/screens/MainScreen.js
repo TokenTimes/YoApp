@@ -211,21 +211,14 @@ const MainScreen = ({ user, onLogout }) => {
       // Give subtle vibration feedback to sender (no sound)
       Vibration.vibrate(50); // Quick 50ms vibration for sender feedback
 
-      // Set a timeout to remove loading state if no confirmation comes back
+      // Remove from sending state immediately after sending
       setTimeout(() => {
         setSendingYos((prev) => {
           const newSet = new Set(prev);
-          if (newSet.has(toUsername)) {
-            newSet.delete(toUsername);
-            console.log(`Timeout: Removing ${toUsername} from sending state`);
-            Alert.alert(
-              "Timeout",
-              "Yo sending timed out. It may have been sent successfully."
-            );
-          }
+          newSet.delete(toUsername);
           return newSet;
         });
-      }, 10000); // 10 second timeout
+      }, 1000); // Quick 1 second to show sending animation
     } catch (error) {
       console.error("Error sending Yo:", error);
       setSendingYos((prev) => {
