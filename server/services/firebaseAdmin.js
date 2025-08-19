@@ -27,7 +27,7 @@ class FirebaseAdminService {
         /*
         admin.initializeApp({
           credential: admin.credential.cert(require('../firebase-service-account.json')),
-          projectId: 'your-firebase-project-id',
+          projectId: 'yoapp-af4b4', // Your Firebase project ID
         });
         */
 

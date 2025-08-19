@@ -6,7 +6,7 @@ const cors = require("cors");
 const config = require("./config");
 
 const User = require("./models/User");
-const firebaseAdmin = require("./services/firebaseAdmin");
+const expoPushService = require("./services/expoPushService");
 
 const app = express();
 const server = http.createServer(app);
@@ -30,8 +30,7 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Initialize Firebase Admin
-firebaseAdmin.initialize();
+// Expo Push Service is initialized automatically
 
 // Store active socket connections
 const activeUsers = new Map();
@@ -89,19 +88,19 @@ io.on("connection", (socket) => {
         });
       }
 
-      // Send Firebase push notification if user has FCM token
-      if (targetUser.fcmToken) {
+      // Send Expo push notification if user has push token
+      if (targetUser.expoPushToken) {
         try {
-          const notificationResult = await firebaseAdmin.sendYoNotification(
-            targetUser.fcmToken,
+          const notificationResult = await expoPushService.sendYoNotification(
+            targetUser.expoPushToken,
             fromUser
           );
-          console.log("Firebase notification result:", notificationResult);
+          console.log("Expo notification result:", notificationResult);
         } catch (error) {
-          console.error("Error sending Firebase notification:", error);
+          console.error("Error sending Expo notification:", error);
         }
       } else {
-        console.log(`No FCM token for ${toUser} - skipping push notification`);
+        console.log(`No Expo push token for ${toUser} - skipping push notification`);
       }
 
       // Send confirmation back to sender
@@ -168,7 +167,7 @@ app.get("/api/users/:username", async (req, res) => {
 // Create or login user
 app.post("/api/users/login", async (req, res) => {
   try {
-    const { username, expoPushToken, fcmToken } = req.body;
+    const { username, expoPushToken } = req.body;
 
     if (!username) {
       return res.status(400).json({ error: "Username is required" });
@@ -178,7 +177,6 @@ app.post("/api/users/login", async (req, res) => {
       { username },
       {
         expoPushToken,
-        fcmToken,
         isOnline: true,
         lastSeen: new Date(),
       },
