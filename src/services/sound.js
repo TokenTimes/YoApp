@@ -43,24 +43,36 @@ class SoundService {
 
   async playYoSound() {
     try {
+      console.log("🔊 Attempting to play Yo sound...");
+
       if (!this.isLoaded) {
+        console.log("Sound not loaded, initializing...");
         await this.initializeSound();
       }
 
       // Try to play custom sound first
       if (this.sound) {
-        await this.sound.replayAsync();
-        console.log("Custom Yo sound played");
+        try {
+          await this.sound.replayAsync();
+          console.log("✅ Custom Yo sound played successfully");
+        } catch (soundError) {
+          console.error("❌ Error playing custom sound:", soundError);
+          // Fallback to vibration if sound playback fails
+          console.log("Using vibration fallback due to sound error");
+          Vibration.vibrate([0, 200, 100, 200]);
+        }
       } else {
         // Fallback to vibration if sound failed to load
-        console.log("Using vibration fallback");
+        console.log("🔊 Using vibration fallback (no sound loaded)");
         Vibration.vibrate([0, 200, 100, 200]);
       }
 
-      // Always add vibration for better user experience
-      Vibration.vibrate([0, 100]);
+      // Always add a quick vibration for better user experience
+      setTimeout(() => {
+        Vibration.vibrate([0, 100]);
+      }, 100);
     } catch (error) {
-      console.error("Error playing Yo sound:", error);
+      console.error("❌ Error in playYoSound:", error);
       // Fallback to vibration
       Vibration.vibrate([0, 200, 100, 200]);
     }

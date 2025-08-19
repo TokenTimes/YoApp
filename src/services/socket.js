@@ -1,6 +1,6 @@
 // Socket.IO service for real-time communication
 import io from "socket.io-client";
-import { SOCKET_SERVER_URL } from '../config/network';
+import { SOCKET_SERVER_URL } from "../config/network";
 
 class SocketService {
   constructor() {
@@ -19,18 +19,19 @@ class SocketService {
     });
 
     this.socket.on("connect", () => {
-      console.log("Connected to server");
+      console.log(`✅ Connected to server at ${this.serverURL}`);
       this.isConnected = true;
       this.socket.emit("join", username);
     });
 
-    this.socket.on("disconnect", () => {
-      console.log("Disconnected from server");
+    this.socket.on("disconnect", (reason) => {
+      console.log(`❌ Disconnected from server: ${reason}`);
       this.isConnected = false;
     });
 
     this.socket.on("connect_error", (error) => {
-      console.error("Connection error:", error);
+      console.error(`🔴 Connection error:`, error.message);
+      console.error(`Trying to connect to: ${this.serverURL}`);
       this.isConnected = false;
     });
 
@@ -47,9 +48,11 @@ class SocketService {
 
   sendYo(fromUser, toUser) {
     if (this.socket && this.isConnected) {
+      console.log(`Sending Yo from ${fromUser} to ${toUser}`);
       this.socket.emit("sendYo", { fromUser, toUser });
     } else {
-      console.error("Socket not connected");
+      console.error("Socket not connected - cannot send Yo");
+      throw new Error("Socket not connected");
     }
   }
 

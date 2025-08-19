@@ -146,8 +146,33 @@ const MainScreen = ({ user, onLogout }) => {
     setSendingYos((prev) => new Set(prev).add(toUsername));
 
     try {
+      // Check if socket is connected
+      if (!SocketService.isConnected) {
+        throw new Error(
+          "Not connected to server. Please check your internet connection."
+        );
+      }
+
       SocketService.sendYo(user.username, toUsername);
-      // Note: We'll get confirmation via socket listener
+
+      // Play sound when sending Yo
+      await SoundService.playYoSound();
+
+      // Set a timeout to remove loading state if no confirmation comes back
+      setTimeout(() => {
+        setSendingYos((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(toUsername)) {
+            newSet.delete(toUsername);
+            console.log(`Timeout: Removing ${toUsername} from sending state`);
+            Alert.alert(
+              "Timeout",
+              "Yo sending timed out. It may have been sent successfully."
+            );
+          }
+          return newSet;
+        });
+      }, 10000); // 10 second timeout
     } catch (error) {
       console.error("Error sending Yo:", error);
       setSendingYos((prev) => {
@@ -155,7 +180,10 @@ const MainScreen = ({ user, onLogout }) => {
         newSet.delete(toUsername);
         return newSet;
       });
-      Alert.alert("Error", "Failed to send Yo. Please try again.");
+      Alert.alert(
+        "Error",
+        error.message || "Failed to send Yo. Please try again."
+      );
     }
   };
 
@@ -231,8 +259,7 @@ const MainScreen = ({ user, onLogout }) => {
           sendingYos.has(item.username) && styles.yoButtonSending,
         ]}
         onPress={() => handleSendYo(item.username)}
-        disabled={sendingYos.has(item.username)}
-      >
+        disabled={sendingYos.has(item.username)}>
         {sendingYos.has(item.username) ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
@@ -280,8 +307,7 @@ const MainScreen = ({ user, onLogout }) => {
                   ? "#059669"
                   : "#6366f1",
             },
-          ]}
-        >
+          ]}>
           <Text style={styles.notificationText}>{yoNotification.message}</Text>
         </Animated.View>
       )}
@@ -454,4 +480,3 @@ const styles = StyleSheet.create({
 });
 
 export default MainScreen;
-
