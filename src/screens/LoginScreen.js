@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import ApiService from "../services/api";
-import ExpoNotificationService from "../services/expoNotifications";
+import PushNotificationService from "../services/pushNotifications";
 import { StorageService } from "../utils/storage";
 
 const LoginScreen = ({ onLogin }) => {
@@ -53,8 +53,8 @@ const LoginScreen = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // Initialize Expo notifications and get push token
-      const expoPushToken = await ExpoNotificationService.initialize();
+      // Initialize push notifications and get push token
+      const expoPushToken = await PushNotificationService.initialize();
 
       // Login/register user
       const response = await ApiService.loginUser(

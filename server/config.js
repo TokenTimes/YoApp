@@ -9,5 +9,4 @@ module.exports = {
   // Expo Push Notifications
   EXPO_ACCESS_TOKEN:
     process.env.EXPO_ACCESS_TOKEN || "0ebWMVBnvz1oGn5ZTcV5I7v10Q7CClIVL8S6qQd4",
-  FCM_SERVER_KEY: process.env.FCM_SERVER_KEY || null,
 };

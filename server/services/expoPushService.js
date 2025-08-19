@@ -4,19 +4,16 @@ const config = require("../config");
 
 class ExpoPushService {
   constructor() {
-    // Create a new Expo SDK client
+    // Create a new Expo SDK client with the access token
     this.expo = new Expo({
-      accessToken: config.EXPO_ACCESS_TOKEN, // Optional: for higher rate limits
-      useFcmV1: false, // Use legacy FCM format for better compatibility
+      accessToken: config.EXPO_ACCESS_TOKEN, // Required for enhanced security
+      useFcmV1: true, // Use FCM v1 for better compatibility
     });
-
-    // Store FCM server key for direct FCM fallback
-    this.fcmServerKey = config.FCM_SERVER_KEY;
 
     console.log("🔔 Expo Push Service initialized");
     console.log(
-      "🔑 FCM Server Key:",
-      this.fcmServerKey ? "✅ Configured" : "❌ Missing"
+      "🔑 Expo Access Token:",
+      config.EXPO_ACCESS_TOKEN ? "✅ Configured" : "❌ Missing"
     );
   }
 
@@ -38,13 +35,11 @@ class ExpoPushService {
           type: "yo",
           fromUser: fromUser,
           timestamp: new Date().toISOString(),
-          action: "yo_received", // For handling specific actions
         },
         priority: "high", // High priority for immediate delivery
-        ttl: 3600, // 1 hour TTL (reasonable for real-time messaging)
+        ttl: 3600, // 1 hour TTL
         channelId: "yo-notifications", // Android notification channel
         badge: 1, // iOS badge increment
-        categoryId: "yo-category", // For notification categories/actions
       };
 
       console.log("📤 Sending Yo notification:", {

@@ -16,7 +16,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import ApiService from "../services/api";
 import SocketService from "../services/socket";
-import ExpoNotificationService from "../services/expoNotifications";
+import PushNotificationService from "../services/pushNotifications";
 import SoundService from "../services/sound";
 import { StorageService } from "../utils/storage";
 
@@ -44,9 +44,49 @@ const MainScreen = ({ user, onLogout }) => {
       await SoundService.initializeSound();
       await loadFriends();
 
-      // Get push token and connect to socket
-      const expoPushToken = await StorageService.getExpoPushToken();
+      // Always ensure we have a fresh push token
+      let expoPushToken = await StorageService.getExpoPushToken();
+
+      // If no token in storage, generate a new one
+      if (!expoPushToken) {
+        console.log("🔔 No push token found, generating new one...");
+        expoPushToken = await PushNotificationService.initialize();
+        if (expoPushToken) {
+          await StorageService.saveExpoPushToken(expoPushToken);
+          console.log(
+            "✅ Push token generated and saved:",
+            expoPushToken.substring(0, 20) + "..."
+          );
+        }
+      } else {
+        console.log(
+          "✅ Using existing push token:",
+          expoPushToken.substring(0, 20) + "..."
+        );
+      }
+
+      // Set up push notification callback
+      if (expoPushToken) {
+        PushNotificationService.setNotificationCallback((notification) => {
+          console.log("🔔 Received notification:", notification);
+          if (notification.from) {
+            SoundService.playYoSound();
+          }
+        });
+      }
+
+      // Connect to socket with push token
       SocketService.connect(user.username, expoPushToken);
+
+      // Also update push token via API as backup
+      if (expoPushToken) {
+        try {
+          await ApiService.loginUser(user.username, expoPushToken);
+          console.log("✅ Push token updated via API as backup");
+        } catch (error) {
+          console.log("⚠️ Failed to update push token via API:", error.message);
+        }
+      }
     } catch (error) {
       console.error("Error initializing main screen:", error);
       Alert.alert("Error", "Failed to initialize. Please try again.");
@@ -94,7 +134,7 @@ const MainScreen = ({ user, onLogout }) => {
 
   const setupNotificationListeners = () => {
     // Set up the callback for when notifications are received
-    ExpoNotificationService.setNotificationReceivedCallback(handleYoReceived);
+    // Notification callback is now set in initializeMainScreen
   };
 
   const handleYoReceived = async (data) => {
@@ -116,7 +156,7 @@ const MainScreen = ({ user, onLogout }) => {
       // (since the user already saw the push notification)
       if (!data.fromTap) {
         console.log("📱 Showing local notification...");
-        await ExpoNotificationService.showYoNotification(data.from);
+        await PushNotificationService.scheduleLocalNotification(data.from);
       }
 
       // Refresh friends list to update counters

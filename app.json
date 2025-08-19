@@ -4,7 +4,6 @@
     "slug": "yo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "projectId": "a066546d-3901-4876-bed2-b92893253897",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -33,7 +32,7 @@
     "extra": {
       "API_URL": null,
       "eas": {
-        "projectId": "a066546d-3901-4876-bed2-b92893253897"
+        "projectId": "608ab2fe-aece-42c1-a584-206590c45b8a"
       }
     },
     "notification": {
@@ -59,6 +58,7 @@
           ]
         }
       ]
-    ]
+    ],
+    "owner": "lotem01"
   }
 }
