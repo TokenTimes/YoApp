@@ -40,15 +40,20 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   // User joins with username
-  socket.on("join", async (username) => {
+  socket.on("join", async (data) => {
     try {
+      const { username, expoPushToken } = data;
       socket.username = username;
       activeUsers.set(username, socket.id);
 
-      // Update user online status
+      // Update user online status AND push token automatically
       await User.findOneAndUpdate(
         { username },
-        { isOnline: true, lastSeen: new Date() },
+        {
+          isOnline: true,
+          lastSeen: new Date(),
+          ...(expoPushToken && { expoPushToken }), // Only update if token provided
+        },
         { upsert: true, new: true }
       );
 
@@ -57,7 +62,11 @@ io.on("connection", (socket) => {
       // Broadcast to all users that someone came online
       socket.broadcast.emit("userOnline", username);
 
-      console.log(`${username} joined and is online`);
+      console.log(
+        `${username} joined and is online${
+          expoPushToken ? " (push token updated)" : ""
+        }`
+      );
     } catch (error) {
       console.error("Error in join event:", error);
     }
@@ -89,6 +98,7 @@ io.on("connection", (socket) => {
       }
 
       // Send Expo push notification if user has push token
+      let pushNotificationSent = false;
       if (targetUser.expoPushToken) {
         try {
           const notificationResult = await expoPushService.sendYoNotification(
@@ -96,6 +106,10 @@ io.on("connection", (socket) => {
             fromUser
           );
           console.log("Expo notification result:", notificationResult);
+
+          if (notificationResult.success) {
+            pushNotificationSent = true;
+          }
 
           // Handle DeviceNotRegistered error by removing invalid token
           if (notificationResult.shouldRemoveToken) {
@@ -108,10 +122,14 @@ io.on("connection", (socket) => {
         } catch (error) {
           console.error("Error sending Expo notification:", error);
         }
-      } else {
+      }
+
+      // If push notification failed or no token, try socket notification
+      if (!pushNotificationSent) {
         console.log(
-          `No Expo push token for ${toUser} - skipping push notification`
+          `📱 Push notification failed/unavailable for ${toUser}, using socket fallback`
         );
+        // The socket notification above will handle it
       }
 
       // Send confirmation back to sender
@@ -204,8 +222,16 @@ app.post("/api/users/login", async (req, res) => {
     });
   } catch (error) {
     if (error.code === 11000) {
-      // Username already exists, just login
-      const user = await User.findOne({ username: req.body.username });
+      // Username already exists, update their push token and login
+      const user = await User.findOneAndUpdate(
+        { username: req.body.username },
+        {
+          expoPushToken: req.body.expoPushToken,
+          isOnline: true,
+          lastSeen: new Date(),
+        },
+        { new: true }
+      );
       res.json({
         success: true,
         user: {
@@ -232,6 +258,30 @@ app.get("/api/users/:username/yos", async (req, res) => {
       yosReceived: user.yosReceived.slice(-50), // Last 50 Yos
       totalYosReceived: user.totalYosReceived,
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint to check user push tokens
+app.get("/api/debug/users", async (req, res) => {
+  try {
+    const users = await User.find(
+      {},
+      "username expoPushToken isOnline lastSeen"
+    ).sort({ username: 1 });
+
+    const usersWithTokenInfo = users.map((user) => ({
+      username: user.username,
+      hasExpoPushToken: !!user.expoPushToken,
+      expoPushToken: user.expoPushToken
+        ? `${user.expoPushToken.substring(0, 20)}...`
+        : null,
+      isOnline: user.isOnline,
+      lastSeen: user.lastSeen,
+    }));
+
+    res.json(usersWithTokenInfo);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
