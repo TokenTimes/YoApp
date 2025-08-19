@@ -6,6 +6,7 @@ const cors = require("cors");
 const config = require("./config");
 
 const User = require("./models/User");
+const firebaseAdmin = require("./services/firebaseAdmin");
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +29,9 @@ mongoose
   })
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// Initialize Firebase Admin
+firebaseAdmin.initialize();
 
 // Store active socket connections
 const activeUsers = new Map();
@@ -83,6 +87,21 @@ io.on("connection", (socket) => {
           timestamp: new Date(),
           totalYos: targetUser.totalYosReceived,
         });
+      }
+
+      // Send Firebase push notification if user has FCM token
+      if (targetUser.fcmToken) {
+        try {
+          const notificationResult = await firebaseAdmin.sendYoNotification(
+            targetUser.fcmToken,
+            fromUser
+          );
+          console.log("Firebase notification result:", notificationResult);
+        } catch (error) {
+          console.error("Error sending Firebase notification:", error);
+        }
+      } else {
+        console.log(`No FCM token for ${toUser} - skipping push notification`);
       }
 
       // Send confirmation back to sender
@@ -149,7 +168,7 @@ app.get("/api/users/:username", async (req, res) => {
 // Create or login user
 app.post("/api/users/login", async (req, res) => {
   try {
-    const { username, expoPushToken } = req.body;
+    const { username, expoPushToken, fcmToken } = req.body;
 
     if (!username) {
       return res.status(400).json({ error: "Username is required" });
@@ -159,6 +178,7 @@ app.post("/api/users/login", async (req, res) => {
       { username },
       {
         expoPushToken,
+        fcmToken,
         isOnline: true,
         lastSeen: new Date(),
       },
@@ -218,4 +238,3 @@ server.listen(PORT, () => {
   console.log(`Yo App server running on port ${PORT}`);
   console.log(`Socket.IO server ready for connections`);
 });
-

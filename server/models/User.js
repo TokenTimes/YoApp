@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    fcmToken: {
+      type: String,
+      default: null,
+    },
     yosReceived: [
       {
         from: {
@@ -49,4 +53,3 @@ userSchema.index({ username: 1 });
 userSchema.index({ isOnline: 1 });
 
 module.exports = mongoose.model("User", userSchema);
-

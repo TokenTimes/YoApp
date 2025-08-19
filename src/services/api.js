@@ -1,5 +1,5 @@
 // API service for communicating with the backend
-import { API_BASE_URL } from '../config/network';
+import { API_BASE_URL } from "../config/network";
 
 class ApiService {
   constructor() {
@@ -36,10 +36,10 @@ class ApiService {
   }
 
   // User authentication
-  async loginUser(username, expoPushToken = null) {
+  async loginUser(username, expoPushToken = null, fcmToken = null) {
     return this.request("/users/login", {
       method: "POST",
-      body: { username, expoPushToken },
+      body: { username, expoPushToken, fcmToken },
     });
   }
 

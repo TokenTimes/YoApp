@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import ApiService from "../services/api";
-import NotificationService from "../services/notifications";
+import FirebaseService from "../services/firebase";
 import { StorageService } from "../utils/storage";
 
 const LoginScreen = ({ onLogin }) => {
@@ -53,22 +53,23 @@ const LoginScreen = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // Register for push notifications
-      const expoPushToken =
-        await NotificationService.registerForPushNotificationsAsync();
+      // Initialize Firebase and get FCM token
+      await FirebaseService.initialize();
+      const fcmToken = FirebaseService.getFCMToken();
 
       // Login/register user
       const response = await ApiService.loginUser(
         usernameToLogin.trim(),
-        expoPushToken
+        null, // expoPushToken (deprecated)
+        fcmToken
       );
 
       if (response.success) {
         // Save user data locally
         await StorageService.saveUsername(usernameToLogin.trim());
         await StorageService.saveUserData(response.user);
-        if (expoPushToken) {
-          await StorageService.saveExpoPushToken(expoPushToken);
+        if (fcmToken) {
+          await StorageService.saveExpoPushToken(fcmToken); // Reuse storage key
         }
 
         // Call parent callback to navigate to main screen
@@ -225,4 +226,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

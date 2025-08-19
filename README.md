@@ -94,19 +94,22 @@ npm run dev
 
 The server will start on `http://localhost:3000`
 
-### 4. Update API Configuration
+### 4. Network Configuration (Automatic)
 
-If your backend is running on a different IP or port, update the API configuration:
+The app automatically detects your network configuration:
 
-```javascript
-// src/services/api.js
-const API_BASE_URL = "http://YOUR_IP_ADDRESS:3000/api";
+- **Development**: Uses Expo's development server IP automatically
+- **Physical Device**: Detects your computer's IP address
+- **Android Emulator**: Uses `10.0.2.2` to reach host machine
+- **iOS Simulator**: Uses `localhost`
 
-// src/services/socket.js
-this.serverURL = "http://YOUR_IP_ADDRESS:3000";
+**No manual configuration needed!** The app works anywhere automatically.
+
+For production deployment, use:
+
+```bash
+node scripts/set-production-url.js https://your-server.herokuapp.com
 ```
-
-**Important**: When testing on a physical device, replace `localhost` with your computer's IP address.
 
 ## 📱 Running on Mobile Devices
 
