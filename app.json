@@ -31,7 +31,10 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "API_URL": null
+      "API_URL": null,
+      "eas": {
+        "projectId": "a066546d-3901-4876-bed2-b92893253897"
+      }
     },
     "notification": {
       "icon": "./assets/icon.png",
