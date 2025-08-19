@@ -1,6 +1,7 @@
 // Notification service using Expo Notifications
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Configure notification behavior
@@ -20,34 +21,54 @@ class NotificationService {
   async registerForPushNotificationsAsync() {
     let token;
 
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#6366f1",
-      });
-    }
-
-    if (Device.isDevice) {
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+    try {
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#6366f1",
+        });
       }
 
-      if (finalStatus !== "granted") {
-        alert("Failed to get push token for push notification!");
-        return;
-      }
+      if (Device.isDevice) {
+        const { status: existingStatus } =
+          await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
 
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log("Expo Push Token:", token);
-    } else {
-      alert("Must use physical device for Push Notifications");
+        if (existingStatus !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus !== "granted") {
+          console.log("Push notification permissions not granted");
+          return null;
+        }
+
+        // Try to get push token with projectId
+        try {
+          const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
+                           Constants.expoConfig?.projectId || 
+                           "yo-app-mobile";
+          
+          token = (await Notifications.getExpoPushTokenAsync({
+            projectId: projectId,
+          })).data;
+          console.log("Expo Push Token:", token);
+        } catch (tokenError) {
+          console.log("Could not get push token:", tokenError.message);
+          console.log("App will continue without push notifications");
+          // Continue without push token - app will still work with local notifications
+          token = null;
+        }
+      } else {
+        console.log("Push notifications require physical device");
+        token = null;
+      }
+    } catch (error) {
+      console.log("Error setting up push notifications:", error.message);
+      token = null;
     }
 
     this.expoPushToken = token;
