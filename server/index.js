@@ -3,10 +3,13 @@ const http = require("http");
 const socketIo = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
 const config = require("./config");
 
 const User = require("./models/User");
 const expoPushService = require("./services/expoPushService");
+const jwtService = require("./services/jwtService");
+const authMiddleware = require("./middleware/auth");
 
 const app = express();
 const server = http.createServer(app);
@@ -214,6 +217,156 @@ io.on("connection", (socket) => {
 });
 
 // REST API Routes
+
+// =====================
+// AUTH ENDPOINTS
+// =====================
+
+// User signup
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Validate input
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "missing_fields" });
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      return res.status(400).json({ error: "invalid_username" });
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "invalid_email" });
+    }
+
+    // Validate password length
+    if (password.length < 8) {
+      return res.status(400).json({ error: "invalid_password" });
+    }
+
+    // Check if username already exists
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(409).json({ error: "username_taken" });
+    }
+
+    // Check if email already exists
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(409).json({ error: "email_taken" });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const user = new User({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
+    await user.save();
+
+    // Generate tokens
+    const tokenPayload = { id: user._id, username: user.username };
+    const { accessToken, refreshToken } =
+      jwtService.generateTokenPair(tokenPayload);
+
+    res.status(201).json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      accessToken,
+      refreshToken,
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// User login
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+
+    if (!identifier || !password) {
+      return res.status(400).json({ error: "missing_fields" });
+    }
+
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [{ username: identifier }, { email: identifier }],
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+
+    // Generate tokens
+    const tokenPayload = { id: user._id, username: user.username };
+    const { accessToken, refreshToken } =
+      jwtService.generateTokenPair(tokenPayload);
+
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      accessToken,
+      refreshToken,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+// Refresh token
+app.post("/api/auth/refresh", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: "missing_refresh_token" });
+    }
+
+    try {
+      const decoded = jwtService.verifyToken(refreshToken);
+
+      // Check if user still exists
+      const user = await User.findById(decoded.id);
+      if (!user) {
+        return res.status(401).json({ error: "user_not_found" });
+      }
+
+      // Generate new access token
+      const tokenPayload = { id: user._id, username: user.username };
+      const accessToken = jwtService.generateAccessToken(tokenPayload);
+
+      res.json({ accessToken });
+    } catch (error) {
+      return res.status(401).json({ error: "invalid_refresh_token" });
+    }
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    res.status(500).json({ error: "server_error" });
+  }
+});
 
 // Get all users
 app.get("/api/users", async (req, res) => {

@@ -4,6 +4,21 @@ import { API_BASE_URL } from "../config/network";
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
+    this.authToken = null;
+    this.refreshTokenPromise = null;
+    this.refreshCallback = null;
+  }
+
+  setAuthToken(token) {
+    this.authToken = token;
+  }
+
+  clearAuthToken() {
+    this.authToken = null;
+  }
+
+  setRefreshCallback(callback) {
+    this.refreshCallback = callback;
   }
 
   async request(endpoint, options = {}) {
@@ -16,6 +31,11 @@ class ApiService {
       ...options,
     };
 
+    // Add auth token if available
+    if (this.authToken) {
+      config.headers.Authorization = `Bearer ${this.authToken}`;
+    }
+
     if (config.body && typeof config.body === "object") {
       config.body = JSON.stringify(config.body);
     }
@@ -25,6 +45,43 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle 401 errors (token expired) for authenticated requests
+        if (
+          response.status === 401 &&
+          this.authToken &&
+          !endpoint.includes("/auth/")
+        ) {
+          // Try to refresh token once
+          if (this.refreshCallback && !this.refreshTokenPromise) {
+            this.refreshTokenPromise = this.refreshCallback();
+            try {
+              await this.refreshTokenPromise;
+              this.refreshTokenPromise = null;
+
+              // Retry the original request with new token
+              const retryConfig = {
+                ...config,
+                headers: {
+                  ...config.headers,
+                  Authorization: `Bearer ${this.authToken}`,
+                },
+              };
+
+              const retryResponse = await fetch(url, retryConfig);
+              const retryData = await retryResponse.json();
+
+              if (!retryResponse.ok) {
+                throw new Error(retryData.error || "Something went wrong");
+              }
+
+              return retryData;
+            } catch (refreshError) {
+              this.refreshTokenPromise = null;
+              throw new Error("token_expired");
+            }
+          }
+          throw new Error("token_expired");
+        }
         throw new Error(data.error || "Something went wrong");
       }
 
@@ -35,7 +92,39 @@ class ApiService {
     }
   }
 
-  // User authentication
+  // =====================
+  // NEW AUTH ENDPOINTS
+  // =====================
+
+  // User signup
+  async signup(username, email, password) {
+    return this.request("/auth/signup", {
+      method: "POST",
+      body: { username, email, password },
+    });
+  }
+
+  // User login
+  async login(identifier, password) {
+    return this.request("/auth/login", {
+      method: "POST",
+      body: { identifier, password },
+    });
+  }
+
+  // Refresh access token
+  async refreshToken(refreshToken) {
+    return this.request("/auth/refresh", {
+      method: "POST",
+      body: { refreshToken },
+    });
+  }
+
+  // =====================
+  // LEGACY AUTH (keep for backward compatibility)
+  // =====================
+
+  // User authentication (legacy)
   async loginUser(username, expoPushToken = null) {
     return this.request("/users/login", {
       method: "POST",

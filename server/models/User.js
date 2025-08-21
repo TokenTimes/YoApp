@@ -7,8 +7,22 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      minlength: 2,
-      maxlength: 50,
+      minlength: 3,
+      maxlength: 20,
+      match: /^[a-zA-Z0-9_]+$/,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 8,
     },
     expoPushToken: {
       type: String,
@@ -96,6 +110,7 @@ const userSchema = new mongoose.Schema(
 
 // Index for faster queries
 userSchema.index({ username: 1 });
+userSchema.index({ email: 1 });
 userSchema.index({ isOnline: 1 });
 userSchema.index({ friends: 1 });
 userSchema.index({ "friendRequests.sent.to": 1 });

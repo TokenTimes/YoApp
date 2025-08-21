@@ -1,60 +1,43 @@
 // Main App Component
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import React from "react";
+import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { NavigationContainer } from "@react-navigation/native";
 
-import LoginScreen from "./src/screens/LoginScreen";
-import MainScreen from "./src/screens/MainScreen";
-import { StorageService } from "./src/utils/storage";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import AuthStack from "./src/navigation/AuthStack";
+import MainStack from "./src/navigation/MainStack";
 
-export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    checkAutoLogin();
-  }, []);
-
-  const checkAutoLogin = async () => {
-    try {
-      const savedUsername = await StorageService.getUsername();
-      const savedUserData = await StorageService.getUserData();
-
-      if (savedUsername && savedUserData) {
-        setCurrentUser(savedUserData);
-      }
-    } catch (error) {
-      console.error("Error checking auto login:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogin = (user) => {
-    setCurrentUser(user);
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-  };
+// App content component that uses auth context
+const AppContent = () => {
+  const { user, isLoading, logout } = useAuth();
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loadingContainer}>
         <StatusBar style="light" backgroundColor="#713790" />
+        <ActivityIndicator size="large" color="#713790" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <NavigationContainer>
       <StatusBar style="light" backgroundColor="#713790" />
-      {currentUser ? (
-        <MainScreen user={currentUser} onLogout={handleLogout} />
-      ) : (
-        <LoginScreen onLogin={handleLogin} />
-      )}
+      {user ? <MainStack user={user} onLogout={logout} /> : <AuthStack />}
+    </NavigationContainer>
+  );
+};
+
+// Main App component with providers
+export default function App() {
+  return (
+    <GestureHandlerRootView style={styles.container}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }
@@ -63,5 +46,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#713790",
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#713790",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#fff",
+    fontSize: 16,
+    marginTop: 10,
   },
 });
