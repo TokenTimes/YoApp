@@ -29,7 +29,9 @@
     "react": "19.0.0",
     "react-native": "0.79.5",
     "socket.io-client": "^4.8.1",
-    "expo-dev-client": "~5.2.4"
+    "expo-dev-client": "~5.2.4",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-reanimated": "~3.17.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

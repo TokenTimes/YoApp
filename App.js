@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import LoginScreen from "./src/screens/LoginScreen";
 import MainScreen from "./src/screens/MainScreen";
@@ -47,14 +48,14 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <StatusBar style="light" backgroundColor="#6366f1" />
       {currentUser ? (
         <MainScreen user={currentUser} onLogout={handleLogout} />
       ) : (
         <LoginScreen onLogin={handleLogin} />
       )}
-    </View>
+    </GestureHandlerRootView>
   );
 }
 

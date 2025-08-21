@@ -22,6 +22,7 @@ import { StorageService } from "../utils/storage";
 import FriendSearchScreen from "./FriendSearchScreen";
 import FriendRequestsScreen from "./FriendRequestsScreen";
 import UserSearchScreen from "./UserSearchScreen";
+import SwipeableRow from "../components/SwipeableRow";
 
 const MainScreen = ({ user, onLogout }) => {
   const [friends, setFriends] = useState([]);
@@ -62,16 +63,12 @@ const MainScreen = ({ user, onLogout }) => {
             "✅ Push token generated and saved:",
             expoPushToken.substring(0, 20) + "..."
           );
-          // 🧪 TESTING: Log full push token for notification testing
-          console.log("🔊 FULL PUSH TOKEN FOR TESTING:", expoPushToken);
         }
       } else {
         console.log(
           "✅ Using existing push token:",
           expoPushToken.substring(0, 20) + "..."
         );
-        // 🧪 TESTING: Log full push token for notification testing
-        console.log("🔊 FULL PUSH TOKEN FOR TESTING:", expoPushToken);
       }
 
       // Set up push notification callback
@@ -292,6 +289,47 @@ const MainScreen = ({ user, onLogout }) => {
     }, 3000);
   };
 
+  const handleRemoveFriend = async (friendUsername) => {
+    try {
+      await ApiService.removeFriend(user.username, friendUsername);
+
+      // Remove from local state immediately for instant feedback
+      setFriends((prevFriends) =>
+        prevFriends.filter((friend) => friend.username !== friendUsername)
+      );
+
+      // Show feedback
+      showNotification(`${friendUsername} removed from friends`, "success");
+
+      // Vibration feedback
+      Vibration.vibrate(50);
+    } catch (error) {
+      console.error("Error removing friend:", error);
+      Alert.alert("Error", "Failed to remove friend. Please try again.");
+      // Reload friends list to restore state
+      loadFriends();
+    }
+  };
+
+  const handleLongPress = (friendUsername) => {
+    Vibration.vibrate(30);
+    Alert.alert(
+      "Remove Friend",
+      `Are you sure you want to remove ${friendUsername} from your friends?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => handleRemoveFriend(friendUsername),
+        },
+      ]
+    );
+  };
+
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
       { text: "Cancel", style: "cancel" },
@@ -319,38 +357,46 @@ const MainScreen = ({ user, onLogout }) => {
   };
 
   const renderFriendItem = ({ item }) => (
-    <View style={styles.friendItem}>
-      <View style={styles.friendInfo}>
-        <View style={styles.friendHeader}>
-          <Text style={styles.friendName}>{item.username}</Text>
-          <View
-            style={[
-              styles.statusDot,
-              { backgroundColor: item.isOnline ? "#10b981" : "#6b7280" },
-            ]}
-          />
-        </View>
-        <Text style={styles.yoCount}>
-          {item.totalYosReceived} Yo{item.totalYosReceived !== 1 ? "s" : ""}{" "}
-          received
-        </Text>
-      </View>
-
+    <SwipeableRow item={item} onRemove={handleRemoveFriend}>
       <TouchableOpacity
-        style={[
-          styles.yoButton,
-          sendingYos.has(item.username) && styles.yoButtonSending,
-        ]}
-        onPress={() => handleSendYo(item.username)}
-        disabled={sendingYos.has(item.username)}
-      >
-        {sendingYos.has(item.username) ? (
-          <ActivityIndicator color="#fff" size="small" />
-        ) : (
-          <Text style={styles.yoButtonText}>Yo!</Text>
-        )}
+        style={styles.friendItem}
+        onLongPress={() => handleLongPress(item.username)}
+        delayLongPress={500}
+        activeOpacity={0.95}>
+        <View style={styles.friendInfo}>
+          <View style={styles.friendHeader}>
+            <Text style={styles.friendName}>{item.username}</Text>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: item.isOnline ? "#10b981" : "#6b7280" },
+              ]}
+            />
+          </View>
+          <Text style={styles.yoCount}>
+            {item.totalYosReceived} Yo{item.totalYosReceived !== 1 ? "s" : ""}{" "}
+            received
+          </Text>
+          <Text style={styles.helpText}>
+            Hold to remove • Swipe left to delete
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.yoButton,
+            sendingYos.has(item.username) && styles.yoButtonSending,
+          ]}
+          onPress={() => handleSendYo(item.username)}
+          disabled={sendingYos.has(item.username)}>
+          {sendingYos.has(item.username) ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.yoButtonText}>Yo!</Text>
+          )}
+        </TouchableOpacity>
       </TouchableOpacity>
-    </View>
+    </SwipeableRow>
   );
 
   if (loading) {
@@ -417,8 +463,7 @@ const MainScreen = ({ user, onLogout }) => {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             onPress={() => setCurrentScreen("requests")}
-            style={styles.iconButton}
-          >
+            style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={22} color="#fff" />
             {pendingRequestsCount > 0 && (
               <View style={styles.notificationBadge}>
@@ -430,8 +475,7 @@ const MainScreen = ({ user, onLogout }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setCurrentScreen("search")}
-            style={styles.iconButton}
-          >
+            style={styles.iconButton}>
             <Ionicons name="search-outline" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -454,8 +498,7 @@ const MainScreen = ({ user, onLogout }) => {
                   ? "#059669"
                   : "#6366f1",
             },
-          ]}
-        >
+          ]}>
           <Text style={styles.notificationText}>{yoNotification.message}</Text>
         </Animated.View>
       )}
@@ -579,11 +622,11 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 20,
   },
+
   friendItem: {
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 20,
-    marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -618,6 +661,12 @@ const styles = StyleSheet.create({
   yoCount: {
     fontSize: 14,
     color: "#64748b",
+  },
+  helpText: {
+    fontSize: 11,
+    color: "#94a3b8",
+    marginTop: 2,
+    fontStyle: "italic",
   },
   yoButton: {
     backgroundColor: "#6366f1",
