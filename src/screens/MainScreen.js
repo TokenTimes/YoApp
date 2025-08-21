@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Animated,
   Vibration,
+  TextInput,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,7 +21,6 @@ import PushNotificationService from "../services/pushNotifications";
 import SoundService from "../services/sound";
 import { StorageService } from "../utils/storage";
 import FriendSearchScreen from "./FriendSearchScreen";
-import FriendRequestsScreen from "./FriendRequestsScreen";
 import UserSearchScreen from "./UserSearchScreen";
 import SwipeableRow from "../components/SwipeableRow";
 
@@ -30,8 +30,9 @@ const MainScreen = ({ user, onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [yoNotification, setYoNotification] = useState(null);
   const [sendingYos, setSendingYos] = useState(new Set());
-  const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search", "requests"
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search"
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredFriends, setFilteredFriends] = useState([]);
 
   const notificationOpacity = useRef(new Animated.Value(0)).current;
 
@@ -45,10 +46,22 @@ const MainScreen = ({ user, onLogout }) => {
     };
   }, []);
 
+  // Filter friends based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredFriends(friends);
+    } else {
+      const filtered = friends.filter((friend) =>
+        friend.username.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredFriends(filtered);
+    }
+  }, [friends, searchQuery]);
+
   const initializeMainScreen = async () => {
     try {
       await SoundService.initializeSound();
-      await Promise.all([loadFriends(), loadPendingRequestsCount()]);
+      await loadFriends();
 
       // Always ensure we have a fresh push token
       let expoPushToken = await StorageService.getExpoPushToken();
@@ -137,19 +150,6 @@ const MainScreen = ({ user, onLogout }) => {
       updateUserStatus(username, false);
     });
 
-    // Listen for friend request notifications
-    SocketService.onFriendRequestReceived((data) => {
-      showNotification(`${data.from} sent you a friend request!`, "success");
-      // Immediately increment the badge count for instant feedback
-      setPendingRequestsCount((prev) => prev + 1);
-    });
-
-    SocketService.onFriendRequestAccepted((data) => {
-      showNotification(`${data.by} accepted your friend request!`, "success");
-      // Refresh friends list to show the new friend
-      loadFriends();
-    });
-
     // Listen for when someone adds you as a friend (instant add)
     SocketService.onFriendAdded((data) => {
       showNotification(`${data.from} added you as a friend!`, "success");
@@ -203,15 +203,6 @@ const MainScreen = ({ user, onLogout }) => {
     } catch (error) {
       console.error("Error loading friends:", error);
       Alert.alert("Error", "Failed to load friends. Please try again.");
-    }
-  };
-
-  const loadPendingRequestsCount = async () => {
-    try {
-      const requests = await ApiService.getFriendRequests(user.username);
-      setPendingRequestsCount(requests.received.length);
-    } catch (error) {
-      console.error("Error loading friend requests count:", error);
     }
   };
 
@@ -352,7 +343,7 @@ const MainScreen = ({ user, onLogout }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadFriends(), loadPendingRequestsCount()]);
+    await loadFriends();
     setRefreshing(false);
   };
 
@@ -378,7 +369,7 @@ const MainScreen = ({ user, onLogout }) => {
             received
           </Text>
           <Text style={styles.helpText}>
-            Hold to remove • Swipe left to delete
+            Long press to remove • Swipe left to delete
           </Text>
         </View>
 
@@ -426,30 +417,6 @@ const MainScreen = ({ user, onLogout }) => {
     );
   }
 
-  if (currentScreen === "requests") {
-    return (
-      <FriendRequestsScreen
-        user={user}
-        onBack={() => {
-          setCurrentScreen("friends");
-          // Refresh data when coming back from requests
-          Promise.all([loadFriends(), loadPendingRequestsCount()]);
-        }}
-        onRequestsChanged={(action) => {
-          // Immediately update badge count and friends list when requests are processed
-          if (action === "accept") {
-            // Decrement badge count and refresh friends list
-            setPendingRequestsCount((prev) => Math.max(0, prev - 1));
-            loadFriends();
-          } else if (action === "reject") {
-            // Only decrement badge count
-            setPendingRequestsCount((prev) => Math.max(0, prev - 1));
-          }
-        }}
-      />
-    );
-  }
-
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#6366f1" />
@@ -462,21 +429,9 @@ const MainScreen = ({ user, onLogout }) => {
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            onPress={() => setCurrentScreen("requests")}
-            style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={22} color="#fff" />
-            {pendingRequestsCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>
-                  {pendingRequestsCount > 9 ? "9+" : pendingRequestsCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
             onPress={() => setCurrentScreen("search")}
             style={styles.iconButton}>
-            <Ionicons name="search-outline" size={22} color="#fff" />
+            <Ionicons name="add" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="#fff" />
@@ -503,21 +458,65 @@ const MainScreen = ({ user, onLogout }) => {
         </Animated.View>
       )}
 
+      {/* Search Bar */}
+      {friends.length > 0 && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons
+              name="search"
+              size={20}
+              color="#64748b"
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search friends..."
+              placeholderTextColor="#94a3b8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={styles.clearButton}>
+                <Ionicons name="close-circle" size={20} color="#94a3b8" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* Friends List */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Friends ({friends.length})</Text>
+        <Text style={styles.sectionTitle}>
+          {searchQuery
+            ? `Found ${filteredFriends.length} friend${
+                filteredFriends.length !== 1 ? "s" : ""
+              }`
+            : `Friends (${friends.length})`}
+        </Text>
 
         {friends.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="people-outline" size={64} color="#94a3b8" />
             <Text style={styles.emptyText}>No friends yet</Text>
             <Text style={styles.emptySubtext}>
-              Tap the search button to find and add friends instantly!
+              Tap the + button to find and add friends instantly!
+            </Text>
+          </View>
+        ) : filteredFriends.length === 0 && searchQuery ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={64} color="#94a3b8" />
+            <Text style={styles.emptyText}>No friends found</Text>
+            <Text style={styles.emptySubtext}>
+              Try searching with a different name
             </Text>
           </View>
         ) : (
           <FlatList
-            data={friends}
+            data={filteredFriends}
             keyExtractor={(item) => item.username}
             renderItem={renderFriendItem}
             refreshControl={
@@ -577,24 +576,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     position: "relative",
   },
-  notificationBadge: {
-    position: "absolute",
-    top: -2,
-    right: -2,
-    backgroundColor: "#ef4444",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#6366f1",
-  },
-  badgeText: {
-    color: "white",
-    fontSize: 11,
-    fontWeight: "bold",
-  },
+
   logoutButton: {
     padding: 8,
   },
@@ -608,6 +590,40 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  searchContainer: {
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#1f2937",
+  },
+  clearButton: {
+    padding: 4,
   },
   content: {
     flex: 1,
