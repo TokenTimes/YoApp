@@ -218,7 +218,7 @@ Custom sounds **do not work in Expo Go**. You must build a custom development cl
 
 ```bash
 # Start development server with dev client
-npm run dev-client
+npx expo start --dev-client
 
 # Build for iOS testing (requires Apple Developer account)
 npm run build:ios
