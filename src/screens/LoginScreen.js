@@ -104,7 +104,7 @@ const LoginScreen = ({ onLogin }) => {
       <StatusBar style="light" backgroundColor="#6366f1" />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Hello!</Text>
+        <Text style={styles.title}>Yo</Text>
         <Text style={styles.subtitle}>Send instant Yos to your friends</Text>
       </View>
 
