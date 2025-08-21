@@ -115,6 +115,16 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // Check if the recipient has blocked the sender
+      const recipientUser = await User.findOne({ username: toUser });
+      if (recipientUser?.blockedUsers?.includes(fromUser)) {
+        socket.emit("yoSent", {
+          success: false,
+          error: "Cannot send Yo to this user",
+        });
+        return;
+      }
+
       // Save Yo to database
       const targetUser = await User.findOneAndUpdate(
         { username: toUser },
@@ -631,6 +641,65 @@ app.delete("/api/friends/:friendUsername", async (req, res) => {
     ]);
 
     res.json({ success: true, message: "Friend removed successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Block user
+app.post("/api/users/block", async (req, res) => {
+  try {
+    const { username, userToBlock } = req.body;
+
+    if (!username || !userToBlock) {
+      return res
+        .status(400)
+        .json({ error: "Username and userToBlock are required" });
+    }
+
+    if (username === userToBlock) {
+      return res.status(400).json({ error: "Cannot block yourself" });
+    }
+
+    // Add to blocked users list and remove from friends list
+    await Promise.all([
+      User.findOneAndUpdate(
+        { username },
+        {
+          $addToSet: { blockedUsers: userToBlock },
+          $pull: { friends: userToBlock },
+        }
+      ),
+      User.findOneAndUpdate(
+        { username: userToBlock },
+        { $pull: { friends: username } }
+      ),
+    ]);
+
+    res.json({ success: true, message: "User blocked successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unblock user
+app.post("/api/users/unblock", async (req, res) => {
+  try {
+    const { username, userToUnblock } = req.body;
+
+    if (!username || !userToUnblock) {
+      return res
+        .status(400)
+        .json({ error: "Username and userToUnblock are required" });
+    }
+
+    // Remove from blocked users list
+    await User.findOneAndUpdate(
+      { username },
+      { $pull: { blockedUsers: userToUnblock } }
+    );
+
+    res.json({ success: true, message: "User unblocked successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

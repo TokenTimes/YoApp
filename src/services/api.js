@@ -136,6 +136,26 @@ class ApiService {
       body: { fromUser, toUser },
     });
   }
+
+  // ========================
+  // USER BLOCKING SYSTEM
+  // ========================
+
+  // Block user
+  async blockUser(username, userToBlock) {
+    return this.request("/users/block", {
+      method: "POST",
+      body: { username, userToBlock },
+    });
+  }
+
+  // Unblock user
+  async unblockUser(username, userToUnblock) {
+    return this.request("/users/unblock", {
+      method: "POST",
+      body: { username, userToUnblock },
+    });
+  }
 }
 
 export default new ApiService();

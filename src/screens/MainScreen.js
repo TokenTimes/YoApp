@@ -302,6 +302,43 @@ const MainScreen = ({ user, onLogout }) => {
     }
   };
 
+  const handleBlockUser = async (friendUsername) => {
+    Alert.alert(
+      "Block User",
+      `Are you sure you want to block ${friendUsername}? This will remove them from your friends and prevent further communication.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await ApiService.blockUser(user.username, friendUsername);
+
+              // Remove from local state immediately for instant feedback
+              setFriends((prevFriends) =>
+                prevFriends.filter(
+                  (friend) => friend.username !== friendUsername
+                )
+              );
+
+              showNotification(`${friendUsername} has been blocked`, "success");
+            } catch (error) {
+              console.error("Error blocking user:", error);
+              Alert.alert("Error", "Failed to block user. Please try again.");
+
+              // Reload friends list to restore state
+              loadFriends();
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleLongPress = (friendUsername) => {
     Vibration.vibrate(30);
     Alert.alert(
@@ -348,7 +385,10 @@ const MainScreen = ({ user, onLogout }) => {
   };
 
   const renderFriendItem = ({ item }) => (
-    <SwipeableRow item={item} onRemove={handleRemoveFriend}>
+    <SwipeableRow
+      item={item}
+      onRemove={handleRemoveFriend}
+      onBlock={handleBlockUser}>
       <TouchableOpacity
         style={styles.friendItem}
         onLongPress={() => handleLongPress(item.username)}
@@ -369,7 +409,7 @@ const MainScreen = ({ user, onLogout }) => {
             received
           </Text>
           <Text style={styles.helpText}>
-            Long press to remove • Swipe left to delete
+            Long press to remove • Swipe left for options
           </Text>
         </View>
 

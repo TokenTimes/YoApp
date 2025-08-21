@@ -1,14 +1,22 @@
 import React, { useRef } from "react";
-import { View, Text, Animated, Vibration, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  Animated,
+  Vibration,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-const SwipeableRow = ({ item, children, onRemove }) => {
+const SwipeableRow = ({ item, children, onRemove, onBlock }) => {
   const translateX = useRef(new Animated.Value(0)).current;
-  const deleteWidth = 100;
-  const threshold = 80;
+  const actionButtonWidth = 80;
+  const totalActionWidth = actionButtonWidth * 2; // Two buttons
+  const threshold = 100;
 
   const onGestureEvent = Animated.event(
     [{ nativeEvent: { translationX: translateX } }],
@@ -20,10 +28,11 @@ const SwipeableRow = ({ item, children, onRemove }) => {
         if (translationX > 0) {
           // Right swipe resistance - allow some movement but with resistance
           translateX.setValue(translationX * 0.3);
-        } else if (translationX < -deleteWidth - 30) {
+        } else if (translationX < -totalActionWidth - 30) {
           // Left swipe with slight overscroll allowed
-          const overscroll = Math.abs(translationX + deleteWidth + 30) * 0.1;
-          translateX.setValue(-deleteWidth - 30 - overscroll);
+          const overscroll =
+            Math.abs(translationX + totalActionWidth + 30) * 0.1;
+          translateX.setValue(-totalActionWidth - 30 - overscroll);
         }
       },
     }
@@ -37,20 +46,18 @@ const SwipeableRow = ({ item, children, onRemove }) => {
     }
 
     if (state === State.END) {
-      const shouldDelete =
+      const shouldShowActions =
         Math.abs(translationX) > threshold ||
         (Math.abs(velocityX) > 1000 && translationX < -30);
 
-      if (translationX < -20 && shouldDelete) {
-        // Delete animation with stronger vibration
-        Vibration.vibrate([50, 30, 50]); // Pattern vibration
-        Animated.timing(translateX, {
-          toValue: -screenWidth,
-          duration: 250,
+      if (translationX < -20 && shouldShowActions) {
+        // Show action buttons
+        Animated.spring(translateX, {
+          toValue: -totalActionWidth,
+          tension: 150,
+          friction: 8,
           useNativeDriver: true,
-        }).start(() => {
-          onRemove?.(item.username);
-        });
+        }).start();
       } else {
         // Smooth snap back animation
         Animated.spring(translateX, {
@@ -63,32 +70,71 @@ const SwipeableRow = ({ item, children, onRemove }) => {
     }
   };
 
-  // Dynamic opacity and scale for delete button
-  const deleteOpacity = translateX.interpolate({
-    inputRange: [-deleteWidth - 20, -30, 0],
+  // Dynamic opacity and scale for action buttons
+  const actionOpacity = translateX.interpolate({
+    inputRange: [-totalActionWidth - 20, -30, 0],
     outputRange: [1, 0.7, 0],
     extrapolate: "clamp",
   });
 
-  const deleteScale = translateX.interpolate({
-    inputRange: [-deleteWidth, -20, 0],
+  const actionScale = translateX.interpolate({
+    inputRange: [-totalActionWidth, -20, 0],
     outputRange: [1, 0.9, 0.7],
     extrapolate: "clamp",
   });
 
+  const handleBlockPress = () => {
+    Vibration.vibrate(30);
+    // Animate back to closed position
+    Animated.spring(translateX, {
+      toValue: 0,
+      tension: 150,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+    onBlock?.(item.username);
+  };
+
+  const handleDeletePress = () => {
+    Vibration.vibrate([50, 30, 50]);
+    // Animate to fully off screen
+    Animated.timing(translateX, {
+      toValue: -screenWidth,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      onRemove?.(item.username);
+    });
+  };
+
   return (
     <View style={styles.container}>
-      {/* Delete Background */}
+      {/* Action Buttons Background */}
       <Animated.View
         style={[
-          styles.deleteBackground,
+          styles.actionsContainer,
           {
-            opacity: deleteOpacity,
-            transform: [{ scale: deleteScale }],
+            opacity: actionOpacity,
+            transform: [{ scale: actionScale }],
           },
         ]}>
-        <Ionicons name="trash-outline" size={20} color="#fff" />
-        <Text style={styles.deleteText}>Remove</Text>
+        {/* Block Button */}
+        <TouchableOpacity
+          style={styles.blockButton}
+          onPress={handleBlockPress}
+          activeOpacity={0.7}>
+          <Ionicons name="ban-outline" size={20} color="#fff" />
+          <Text style={styles.actionText}>Block</Text>
+        </TouchableOpacity>
+
+        {/* Delete Button */}
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDeletePress}
+          activeOpacity={0.7}>
+          <Ionicons name="trash-outline" size={20} color="#fff" />
+          <Text style={styles.actionText}>Delete</Text>
+        </TouchableOpacity>
       </Animated.View>
 
       {/* Swipeable Content */}
@@ -117,16 +163,16 @@ const styles = {
     marginBottom: 12,
     backgroundColor: "transparent",
   },
-  deleteBackground: {
+  actionsContainer: {
     position: "absolute",
     right: 15,
     top: 10,
     bottom: 10,
-    backgroundColor: "#ef4444",
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
-    width: 80,
+    width: 160, // actionButtonWidth * 2
     borderRadius: 12,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -136,7 +182,21 @@ const styles = {
     shadowRadius: 4,
     elevation: 6,
   },
-  deleteText: {
+  blockButton: {
+    backgroundColor: "#ef4444", // Red background for block
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
+    height: "100%",
+  },
+  deleteButton: {
+    backgroundColor: "#1f2937", // Black background for delete
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
+    height: "100%",
+  },
+  actionText: {
     color: "#fff",
     fontSize: 11,
     fontWeight: "700",

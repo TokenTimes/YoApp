@@ -45,6 +45,13 @@ const userSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    // Blocked users
+    blockedUsers: [
+      {
+        type: String,
+        ref: "User",
+      },
+    ],
     friendRequests: {
       sent: [
         {
