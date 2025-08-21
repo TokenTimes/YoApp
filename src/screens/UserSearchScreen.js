@@ -147,9 +147,8 @@ const UserSearchScreen = ({ user, onBack, onUserAdded }) => {
   }, [searchQuery]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#713790" />
-
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -158,7 +157,6 @@ const UserSearchScreen = ({ user, onBack, onUserAdded }) => {
         <Text style={styles.headerTitle}>Add Friends</Text>
         <View style={{ width: 24 }} />
       </View>
-
       {/* Search Input */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
@@ -227,7 +225,7 @@ const UserSearchScreen = ({ user, onBack, onUserAdded }) => {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -236,15 +234,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8fafc",
   },
+
   header: {
     backgroundColor: "#713790",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 50,
     paddingBottom: 20,
   },
+
   backButton: {
     padding: 4,
   },

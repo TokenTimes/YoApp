@@ -2,7 +2,7 @@
 
 ## Overview
 
-The YoApp now includes a simplified user search and instant add feature that allows users to find and add friends without the complexity of friend requests and approvals.
+The YoApp now includes a simplified user search and instant add feature that allows users to find and without the complexity of friend requests and approvals.
 
 ## How to Use
 
@@ -11,7 +11,7 @@ The YoApp now includes a simplified user search and instant add feature that all
 1. **Access Search**: Tap the search icon (🔍) in the main screen header
 2. **Search Users**: Type any username in the search field
 3. **View Results**: See real-time search results as you type
-4. **Add Friends**: Tap "Add" next to any user to instantly add them as a friend
+4. \*\*\*\*: Tap "Add" next to any user to instantly add them as a friend
 5. **Send Yos**: Immediately send Yo messages to newly added friends
 
 ### Key Features
@@ -68,7 +68,7 @@ The YoApp now includes a simplified user search and instant add feature that all
 
 ## Success Metrics
 
-- ⏱️ **3-second target**: Users can find and add friends within 3 seconds
+- ⏱️ **3-second target**: Users can find and within 3 seconds
 - 🚫 **Zero friction**: No approval steps or waiting periods
 - ✅ **Immediate access**: Instant Yo messaging capability
 - 📱 **Intuitive UI**: Clean, search-focused interface
