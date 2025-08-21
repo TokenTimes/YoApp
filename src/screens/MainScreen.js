@@ -393,7 +393,7 @@ const MainScreen = ({ user, onLogout }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#713790" />
         <Text style={styles.loadingText}>Loading friends...</Text>
       </View>
     );
@@ -419,7 +419,7 @@ const MainScreen = ({ user, onLogout }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="light" backgroundColor="#6366f1" />
+      <StatusBar style="light" backgroundColor="#713790" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -451,7 +451,7 @@ const MainScreen = ({ user, onLogout }) => {
                   ? "#10b981"
                   : yoNotification.type === "success"
                   ? "#059669"
-                  : "#6366f1",
+                  : "#713790",
             },
           ]}>
           <Text style={styles.notificationText}>{yoNotification.message}</Text>
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     color: "#64748b",
   },
   header: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   yoButton: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,

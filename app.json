@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#6366f1"
+      "backgroundColor": "#713790"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#6366f1"
+        "backgroundColor": "#713790"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.yoapp.mobile",
@@ -40,7 +40,7 @@
     },
     "notification": {
       "icon": "./assets/icon.png",
-      "color": "#6366f1",
+      "color": "#713790",
       "iosDisplayInForeground": true,
       "sounds": ["yo_sound.caf"]
     },
@@ -49,7 +49,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#6366f1",
+          "color": "#713790",
           "sounds": ["./assets/notifications/yo_sound.caf"],
           "mode": "production"
         }

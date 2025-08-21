@@ -206,7 +206,7 @@ const FriendRequestsScreen = ({ user, onBack, onRequestsChanged }) => {
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" backgroundColor="#1f2937" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#713790" />
           <Text style={styles.loadingText}>Loading friend requests...</Text>
         </View>
       </SafeAreaView>
@@ -271,8 +271,8 @@ const FriendRequestsScreen = ({ user, onBack, onRequestsChanged }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#6366f1"
-                colors={["#6366f1"]}
+                tintColor="#713790"
+                colors={["#713790"]}
               />
             }
           />
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   activeTab: {
-    borderBottomColor: "#6366f1",
+    borderBottomColor: "#713790",
   },
   tabText: {
     fontSize: 16,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
   },
   activeTabText: {
-    color: "#6366f1",
+    color: "#713790",
   },
   contentContainer: {
     flex: 1,

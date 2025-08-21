@@ -91,7 +91,7 @@ const LoginScreen = ({ onLogin }) => {
   if (initializing) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#713790" />
         <Text style={styles.loadingText}>Initializing...</Text>
       </View>
     );
@@ -101,7 +101,7 @@ const LoginScreen = ({ onLogin }) => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <StatusBar style="light" backgroundColor="#6366f1" />
+      <StatusBar style="light" backgroundColor="#713790" />
 
       <View style={styles.header}>
         <Text style={styles.title}>Yo</Text>
@@ -144,7 +144,7 @@ const LoginScreen = ({ onLogin }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     justifyContent: "center",
     padding: 20,
   },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     color: "#1f2937",
   },
   button: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     borderRadius: 12,
     padding: 15,
     alignItems: "center",

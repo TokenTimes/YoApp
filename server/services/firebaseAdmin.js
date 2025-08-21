@@ -67,7 +67,7 @@ class FirebaseAdminService {
         android: {
           notification: {
             icon: "ic_notification",
-            color: "#6366f1",
+            color: "#713790",
             sound: "yo_sound", // Custom sound file
             channelId: "yo_notifications",
           },
@@ -117,7 +117,7 @@ class FirebaseAdminService {
         android: {
           notification: {
             icon: "ic_notification",
-            color: "#6366f1",
+            color: "#713790",
             sound: "yo_sound",
             channelId: "yo_notifications",
           },

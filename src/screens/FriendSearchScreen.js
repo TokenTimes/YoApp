@@ -183,7 +183,7 @@ const FriendSearchScreen = ({ user, onBack, onRequestSent }) => {
       <View style={styles.resultsContainer}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366f1" />
+            <ActivityIndicator size="large" color="#713790" />
             <Text style={styles.loadingText}>Searching...</Text>
           </View>
         ) : searchResults.length > 0 ? (
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addButton: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
   },
   friendsButton: {
     backgroundColor: "#10b981",

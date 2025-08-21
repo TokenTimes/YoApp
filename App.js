@@ -42,14 +42,14 @@ export default function App() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <StatusBar style="light" backgroundColor="#6366f1" />
+        <StatusBar style="light" backgroundColor="#713790" />
       </View>
     );
   }
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StatusBar style="light" backgroundColor="#6366f1" />
+      <StatusBar style="light" backgroundColor="#713790" />
       {currentUser ? (
         <MainScreen user={currentUser} onLogout={handleLogout} />
       ) : (
@@ -62,6 +62,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
   },
 });

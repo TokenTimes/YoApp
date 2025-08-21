@@ -148,7 +148,7 @@ const UserSearchScreen = ({ user, onBack, onUserAdded }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" backgroundColor="#6366f1" />
+      <StatusBar style="light" backgroundColor="#713790" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -192,7 +192,7 @@ const UserSearchScreen = ({ user, onBack, onUserAdded }) => {
       <View style={styles.resultsContainer}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366f1" />
+            <ActivityIndicator size="large" color="#713790" />
             <Text style={styles.loadingText}>Searching users...</Text>
           </View>
         ) : searchResults.length > 0 ? (
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   searchContainer: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   userStats: {
     fontSize: 13,
-    color: "#6366f1",
+    color: "#713790",
     fontWeight: "500",
     marginBottom: 2,
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
   },
   addButton: {
-    backgroundColor: "#6366f1",
+    backgroundColor: "#713790",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
