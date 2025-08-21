@@ -28,7 +28,7 @@ class ExpoPushService {
       // Construct the message following Expo best practices
       const message = {
         to: expoPushToken,
-        sound: "yo-sound.wav", // Custom Yo sound file
+        sound: "yo_sound.caf", // Custom Yo sound file for iOS background/terminated
         title: "Yo! 👋",
         body: `${fromUser} sent you a Yo!`,
         data: {
@@ -118,7 +118,7 @@ class ExpoPushService {
       // Create messages for all valid tokens
       const messages = validTokens.map((token) => ({
         to: token,
-        sound: "default",
+        sound: "yo_sound.caf", // Custom Yo sound file for iOS background/terminated
         title: "Yo!",
         body: `${fromUser} sent you a Yo!`,
         data: {

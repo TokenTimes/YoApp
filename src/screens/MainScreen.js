@@ -62,12 +62,16 @@ const MainScreen = ({ user, onLogout }) => {
             "✅ Push token generated and saved:",
             expoPushToken.substring(0, 20) + "..."
           );
+          // 🧪 TESTING: Log full push token for notification testing
+          console.log("🔊 FULL PUSH TOKEN FOR TESTING:", expoPushToken);
         }
       } else {
         console.log(
           "✅ Using existing push token:",
           expoPushToken.substring(0, 20) + "..."
         );
+        // 🧪 TESTING: Log full push token for notification testing
+        console.log("🔊 FULL PUSH TOKEN FOR TESTING:", expoPushToken);
       }
 
       // Set up push notification callback
@@ -338,7 +342,8 @@ const MainScreen = ({ user, onLogout }) => {
           sendingYos.has(item.username) && styles.yoButtonSending,
         ]}
         onPress={() => handleSendYo(item.username)}
-        disabled={sendingYos.has(item.username)}>
+        disabled={sendingYos.has(item.username)}
+      >
         {sendingYos.has(item.username) ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
@@ -412,7 +417,8 @@ const MainScreen = ({ user, onLogout }) => {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             onPress={() => setCurrentScreen("requests")}
-            style={styles.iconButton}>
+            style={styles.iconButton}
+          >
             <Ionicons name="notifications-outline" size={22} color="#fff" />
             {pendingRequestsCount > 0 && (
               <View style={styles.notificationBadge}>
@@ -424,7 +430,8 @@ const MainScreen = ({ user, onLogout }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setCurrentScreen("search")}
-            style={styles.iconButton}>
+            style={styles.iconButton}
+          >
             <Ionicons name="search-outline" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -447,7 +454,8 @@ const MainScreen = ({ user, onLogout }) => {
                   ? "#059669"
                   : "#6366f1",
             },
-          ]}>
+          ]}
+        >
           <Text style={styles.notificationText}>{yoNotification.message}</Text>
         </Animated.View>
       )}

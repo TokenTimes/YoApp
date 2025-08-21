@@ -15,7 +15,10 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yoapp.mobile"
+      "bundleIdentifier": "com.yoapp.mobile",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -37,7 +40,9 @@
     },
     "notification": {
       "icon": "./assets/icon.png",
-      "color": "#6366f1"
+      "color": "#6366f1",
+      "iosDisplayInForeground": true,
+      "sounds": ["yo_sound.caf"]
     },
     "plugins": [
       [
@@ -45,7 +50,7 @@
         {
           "icon": "./assets/icon.png",
           "color": "#6366f1",
-          "sounds": ["./assets/sounds/yo-sound.wav"],
+          "sounds": ["./assets/notifications/yo_sound.caf"],
           "mode": "production"
         }
       ],

@@ -143,6 +143,104 @@ npx expo start --tunnel
 npx expo start --lan
 ```
 
+## 🔔 Custom Notification Sound Testing
+
+### ⚠️ Important Limitation
+
+Custom sounds **do not work in Expo Go**. You must build a custom development client using `expo-dev-client`, or a full standalone app via `eas build`.
+
+### 🎵 Testing Custom Sounds on Real Devices
+
+#### ✅ iOS (Custom Dev Client or Standalone)
+
+1. **Build a Development Client** (for local testing):
+
+   ```bash
+   # Build and run on iOS device/simulator
+   npm run build:ios
+
+   # Or start dev client mode
+   npm run dev-client
+   ```
+
+2. **Get Your Push Token** (add this temporarily to your app):
+
+   ```javascript
+   // Add to MainScreen.js for testing
+   import * as Notifications from "expo-notifications";
+
+   const token = await Notifications.getExpoPushTokenAsync();
+   console.log("Push Token:", token.data);
+   ```
+
+3. **Test Custom Sound via cURL**:
+
+   ```bash
+   curl -X POST https://exp.host/--/api/v2/push/send \
+     -H "Content-Type: application/json" \
+     -d '{
+       "to": "ExponentPushToken[YOUR_TOKEN_HERE]",
+       "sound": "yo_sound.caf",
+       "title": "🔊 Custom Sound Test",
+       "body": "This should play your custom Yo sound!",
+       "priority": "high"
+     }'
+   ```
+
+4. **Expected Behavior**:
+   - ✅ **Foreground**: Custom sound plays
+   - ✅ **Background**: Custom sound plays
+   - ✅ **Terminated**: Custom sound plays
+
+#### 📱 Android (Managed Workflow)
+
+⚠️ **Note**: Expo Notifications on Android (managed) do not support custom sounds out-of-the-box.
+
+1. **Test Default Sound**:
+
+   ```bash
+   curl -X POST https://exp.host/--/api/v2/push/send \
+     -H "Content-Type: application/json" \
+     -d '{
+       "to": "ExponentPushToken[YOUR_TOKEN_HERE]",
+       "title": "📱 Android Test",
+       "body": "This will use the default system sound",
+       "priority": "high"
+     }'
+   ```
+
+2. **For Full Android Sound Customization**:
+   - Must eject to bare workflow
+   - Place `yo_sound.caf` in `android/app/src/main/res/raw/`
+   - Use `"sound": "yo_sound"` in FCM payload
+
+### 🛠️ Development Testing Commands
+
+```bash
+# Start development server with dev client
+npm run dev-client
+
+# Build for iOS testing (requires Apple Developer account)
+npm run build:ios
+
+# Build for Android testing
+npm run build:android
+
+# Start backend server for push testing
+npm run server-dev
+```
+
+### 📋 Testing Checklist
+
+- [ ] Custom sound file is at `assets/notifications/yo_sound.caf`
+- [ ] `app.json` includes sound in `notification.sounds` array
+- [ ] iOS `UIBackgroundModes` includes `remote-notification`
+- [ ] Built custom dev client (not using Expo Go)
+- [ ] Obtained push token from device
+- [ ] Tested foreground notifications
+- [ ] Tested background notifications
+- [ ] Tested terminated state notifications
+
 ## 🔧 Development Commands
 
 ### Frontend Commands
