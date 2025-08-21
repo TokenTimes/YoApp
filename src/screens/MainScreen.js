@@ -384,48 +384,72 @@ const MainScreen = ({ user, onLogout }) => {
     setRefreshing(false);
   };
 
+  // Generate random background colors for friends
+  const getRandomColor = (username) => {
+    const colors = [
+      "#4ade80", // green
+      "#60a5fa", // blue
+      "#a78bfa", // purple
+      "#f87171", // red
+      "#fbbf24", // yellow
+      "#fb7185", // pink
+      "#34d399", // emerald
+      "#818cf8", // indigo
+      "#fcd34d", // amber
+      "#f472b6", // pink
+      "#22d3ee", // cyan
+      "#a3a3a3", // gray
+    ];
+
+    // Generate consistent color based on username
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   const renderFriendItem = ({ item }) => (
     <SwipeableRow
       item={item}
       onRemove={handleRemoveFriend}
       onBlock={handleBlockUser}>
       <TouchableOpacity
-        style={styles.friendItem}
+        style={[
+          styles.friendItem,
+          { backgroundColor: getRandomColor(item.username) },
+          sendingYos.has(item.username) && styles.friendItemSending,
+        ]}
+        onPress={() => handleSendYo(item.username)}
         onLongPress={() => handleLongPress(item.username)}
         delayLongPress={500}
-        activeOpacity={0.95}>
+        activeOpacity={0.8}
+        disabled={sendingYos.has(item.username)}>
+        {sendingYos.has(item.username) && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator color="#fff" size="small" />
+          </View>
+        )}
+
         <View style={styles.friendInfo}>
-          <View style={styles.friendHeader}>
-            <Text style={styles.friendName}>{item.username}</Text>
+          <Text style={styles.friendName}>{item.username}</Text>
+          <View style={styles.friendStats}>
             <View
               style={[
                 styles.statusDot,
-                { backgroundColor: item.isOnline ? "#10b981" : "#6b7280" },
+                {
+                  backgroundColor: item.isOnline
+                    ? "#ffffff"
+                    : "rgba(255,255,255,0.5)",
+                },
               ]}
             />
+            <Text style={styles.yoCount}>
+              {item.totalYosReceived} Yo{item.totalYosReceived !== 1 ? "s" : ""}
+            </Text>
           </View>
-          <Text style={styles.yoCount}>
-            {item.totalYosReceived} Yo{item.totalYosReceived !== 1 ? "s" : ""}{" "}
-            received
-          </Text>
-          <Text style={styles.helpText}>
-            Long press to remove • Swipe left for options
-          </Text>
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.yoButton,
-            sendingYos.has(item.username) && styles.yoButtonSending,
-          ]}
-          onPress={() => handleSendYo(item.username)}
-          disabled={sendingYos.has(item.username)}>
-          {sendingYos.has(item.username) ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.yoButtonText}>Yo!</Text>
-          )}
-        </TouchableOpacity>
       </TouchableOpacity>
     </SwipeableRow>
   );
@@ -677,15 +701,15 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingBottom: 20,
+    paddingHorizontal: 4,
   },
 
   friendItem: {
-    backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    padding: 24,
+    marginBottom: 12,
+    justifyContent: "center",
+    minHeight: 80,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -694,51 +718,53 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    position: "relative",
+  },
+  friendItemSending: {
+    opacity: 0.7,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    borderRadius: 16,
+    zIndex: 1,
   },
   friendInfo: {
-    flex: 1,
-  },
-  friendHeader: {
-    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
   },
   friendName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1f2937",
-    marginRight: 8,
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#ffffff",
+    textAlign: "center",
+    marginBottom: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  friendStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   yoCount: {
     fontSize: 14,
-    color: "#64748b",
-  },
-  helpText: {
-    fontSize: 11,
-    color: "#94a3b8",
-    marginTop: 2,
-    fontStyle: "italic",
-  },
-  yoButton: {
-    backgroundColor: "#713790",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    minWidth: 60,
-    alignItems: "center",
-  },
-  yoButtonSending: {
-    backgroundColor: "#94a3b8",
-  },
-  yoButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "500",
   },
   emptyState: {
     flex: 1,
