@@ -116,6 +116,26 @@ class ApiService {
   async getFriendRequests(username) {
     return this.request(`/friends/requests/${username}`);
   }
+
+  // ========================
+  // SIMPLIFIED USER SEARCH AND ADD
+  // ========================
+
+  // Simple user search (case-insensitive partial matching)
+  async searchUsersSimple(username, searchQuery) {
+    return this.request("/users/search", {
+      method: "POST",
+      body: { username, searchQuery },
+    });
+  }
+
+  // Instant add user as friend (no requests, instant addition)
+  async addUserInstant(fromUser, toUser) {
+    return this.request("/users/add", {
+      method: "POST",
+      body: { fromUser, toUser },
+    });
+  }
 }
 
 export default new ApiService();

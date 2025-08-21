@@ -21,6 +21,7 @@ import SoundService from "../services/sound";
 import { StorageService } from "../utils/storage";
 import FriendSearchScreen from "./FriendSearchScreen";
 import FriendRequestsScreen from "./FriendRequestsScreen";
+import UserSearchScreen from "./UserSearchScreen";
 
 const MainScreen = ({ user, onLogout }) => {
   const [friends, setFriends] = useState([]);
@@ -138,12 +139,19 @@ const MainScreen = ({ user, onLogout }) => {
     // Listen for friend request notifications
     SocketService.onFriendRequestReceived((data) => {
       showNotification(`${data.from} sent you a friend request!`, "success");
-      // Update the pending requests count
-      loadPendingRequestsCount();
+      // Immediately increment the badge count for instant feedback
+      setPendingRequestsCount((prev) => prev + 1);
     });
 
     SocketService.onFriendRequestAccepted((data) => {
       showNotification(`${data.by} accepted your friend request!`, "success");
+      // Refresh friends list to show the new friend
+      loadFriends();
+    });
+
+    // Listen for when someone adds you as a friend (instant add)
+    SocketService.onFriendAdded((data) => {
+      showNotification(`${data.from} added you as a friend!`, "success");
       // Refresh friends list to show the new friend
       loadFriends();
     });
@@ -352,16 +360,16 @@ const MainScreen = ({ user, onLogout }) => {
   // Handle screen navigation
   if (currentScreen === "search") {
     return (
-      <FriendSearchScreen
+      <UserSearchScreen
         user={user}
         onBack={() => {
           setCurrentScreen("friends");
-          // Refresh data when coming back from search
-          loadPendingRequestsCount();
+          // Refresh friends list when coming back from search
+          loadFriends();
         }}
-        onRequestSent={() => {
-          // No need to update anything locally since the request was sent to another user
-          // The receiving user will get a socket notification
+        onUserAdded={(addedUsername) => {
+          // Refresh friends list immediately when a user is added
+          loadFriends();
         }}
       />
     );
@@ -376,9 +384,16 @@ const MainScreen = ({ user, onLogout }) => {
           // Refresh data when coming back from requests
           Promise.all([loadFriends(), loadPendingRequestsCount()]);
         }}
-        onRequestsChanged={() => {
-          // Immediately update friends list and badge count when requests are processed
-          Promise.all([loadFriends(), loadPendingRequestsCount()]);
+        onRequestsChanged={(action) => {
+          // Immediately update badge count and friends list when requests are processed
+          if (action === "accept") {
+            // Decrement badge count and refresh friends list
+            setPendingRequestsCount((prev) => Math.max(0, prev - 1));
+            loadFriends();
+          } else if (action === "reject") {
+            // Only decrement badge count
+            setPendingRequestsCount((prev) => Math.max(0, prev - 1));
+          }
         }}
       />
     );
@@ -410,7 +425,7 @@ const MainScreen = ({ user, onLogout }) => {
           <TouchableOpacity
             onPress={() => setCurrentScreen("search")}
             style={styles.iconButton}>
-            <Ionicons name="person-add-outline" size={22} color="#fff" />
+            <Ionicons name="search-outline" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="#fff" />
@@ -446,7 +461,7 @@ const MainScreen = ({ user, onLogout }) => {
             <Ionicons name="people-outline" size={64} color="#94a3b8" />
             <Text style={styles.emptyText}>No friends yet</Text>
             <Text style={styles.emptySubtext}>
-              Tap the + button to search and add friends!
+              Tap the search button to find and add friends instantly!
             </Text>
           </View>
         ) : (

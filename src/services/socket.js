@@ -93,6 +93,12 @@ class SocketService {
     }
   }
 
+  onFriendAdded(callback) {
+    if (this.socket) {
+      this.socket.on("friendAdded", callback);
+    }
+  }
+
   removeAllListeners() {
     if (this.socket) {
       this.socket.removeAllListeners();

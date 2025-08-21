@@ -686,6 +686,118 @@ app.get("/api/friends/requests/:username", async (req, res) => {
   }
 });
 
+// ==============================
+// SIMPLIFIED USER SEARCH AND ADD
+// ==============================
+
+// Simple user search (case-insensitive partial matching)
+app.post("/api/users/search", async (req, res) => {
+  try {
+    const { username, searchQuery } = req.body;
+
+    if (!username || !searchQuery) {
+      return res
+        .status(400)
+        .json({ error: "Username and search query are required" });
+    }
+
+    // Get current user to exclude from results
+    const currentUser = await User.findOne({ username });
+    if (!currentUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const existingFriends = currentUser.friends || [];
+
+    // Search for users matching the query (case insensitive, partial matching)
+    const searchResults = await User.find(
+      {
+        username: {
+          $regex: searchQuery,
+          $options: "i", // case insensitive
+          $ne: username, // exclude current user
+        },
+      },
+      "username isOnline lastSeen totalYosReceived"
+    )
+      .limit(20) // limit results for performance
+      .sort({ username: 1 });
+
+    // Add friend status to results
+    const resultsWithStatus = searchResults.map((user) => ({
+      username: user.username,
+      isOnline: user.isOnline,
+      lastSeen: user.lastSeen,
+      totalYosReceived: user.totalYosReceived,
+      isFriend: existingFriends.includes(user.username),
+    }));
+
+    res.json(resultsWithStatus);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Instant add user as friend (no requests, instant addition)
+app.post("/api/users/add", async (req, res) => {
+  try {
+    const { fromUser, toUser } = req.body;
+
+    if (!fromUser || !toUser) {
+      return res
+        .status(400)
+        .json({ error: "Both fromUser and toUser are required" });
+    }
+
+    if (fromUser === toUser) {
+      return res.status(400).json({ error: "Cannot add yourself as a friend" });
+    }
+
+    // Check if users exist
+    const [sender, recipient] = await Promise.all([
+      User.findOne({ username: fromUser }),
+      User.findOne({ username: toUser }),
+    ]);
+
+    if (!sender || !recipient) {
+      return res.status(404).json({ error: "One or both users not found" });
+    }
+
+    // Check if already friends
+    if (sender.friends?.includes(toUser)) {
+      return res.status(400).json({ error: "Already friends with this user" });
+    }
+
+    // Instantly add to both users' friends lists
+    await Promise.all([
+      User.findOneAndUpdate(
+        { username: fromUser },
+        { $addToSet: { friends: toUser } }
+      ),
+      User.findOneAndUpdate(
+        { username: toUser },
+        { $addToSet: { friends: fromUser } }
+      ),
+    ]);
+
+    // Send real-time notification to recipient if online
+    const recipientSocketId = activeUsers.get(toUser);
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("friendAdded", {
+        from: fromUser,
+        timestamp: new Date(),
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully added ${toUser} as a friend!`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const PORT = config.PORT;
 server.listen(PORT, () => {
   console.log(`Yo App server running on port ${PORT}`);
