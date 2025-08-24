@@ -123,7 +123,8 @@ io.on("connection", (socket) => {
       if (recipientUser?.blockedUsers?.includes(fromUser)) {
         socket.emit("yoSent", {
           success: false,
-          error: "Cannot send Yo to this user",
+          error: "You are blocked by this user and cannot send Yos",
+          blocked: true,
         });
         return;
       }
@@ -858,6 +859,28 @@ app.post("/api/users/unblock", async (req, res) => {
   }
 });
 
+// Get blocked users list
+app.get("/api/users/:username/blocked", async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username }, "blockedUsers");
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get detailed info about blocked users
+    const blockedUsers = await User.find(
+      { username: { $in: user.blockedUsers || [] } },
+      "username isOnline lastSeen"
+    ).sort({ username: 1 });
+
+    res.json(blockedUsers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get user's friends list
 app.get("/api/friends/:username", async (req, res) => {
   try {
@@ -940,18 +963,20 @@ app.post("/api/users/search", async (req, res) => {
           $ne: username, // exclude current user
         },
       },
-      "username isOnline lastSeen totalYosReceived"
+      "username isOnline lastSeen totalYosReceived blockedUsers"
     )
       .limit(20) // limit results for performance
       .sort({ username: 1 });
 
-    // Add friend status to results
+    // Add friend and blocked status to results
     const resultsWithStatus = searchResults.map((user) => ({
       username: user.username,
       isOnline: user.isOnline,
       lastSeen: user.lastSeen,
       totalYosReceived: user.totalYosReceived,
       isFriend: existingFriends.includes(user.username),
+      isBlocked: currentUser.blockedUsers?.includes(user.username) || false,
+      hasBlockedYou: user.blockedUsers?.includes(username) || false,
     }));
 
     res.json(resultsWithStatus);

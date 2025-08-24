@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import * as SecureStore from "expo-secure-store";
 import ApiService from "../services/api";
+import SoundService from "../services/sound";
 
 const AuthContext = createContext({});
 
@@ -45,6 +46,9 @@ export const AuthProvider = ({ children }) => {
         ApiService.setAuthToken(storedAccessToken);
         // Set up auto-refresh callback
         ApiService.setRefreshCallback(refreshAccessToken);
+
+        // Initialize sound service immediately after successful auth
+        await SoundService.initializeSound();
       }
     } catch (error) {
       console.error("Error loading stored auth:", error);
@@ -98,6 +102,10 @@ export const AuthProvider = ({ children }) => {
         response.accessToken,
         response.refreshToken
       );
+
+      // Initialize sound service immediately after successful signup
+      await SoundService.initializeSound();
+
       return response;
     } catch (error) {
       throw error;
@@ -112,6 +120,10 @@ export const AuthProvider = ({ children }) => {
         response.accessToken,
         response.refreshToken
       );
+
+      // Initialize sound service immediately after successful login
+      await SoundService.initializeSound();
+
       return response;
     } catch (error) {
       throw error;
@@ -119,6 +131,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Clean up sound service before clearing auth
+    await SoundService.cleanup();
     await clearAuth();
   };
 

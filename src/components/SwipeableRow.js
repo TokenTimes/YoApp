@@ -14,6 +14,16 @@ const { width: screenWidth } = Dimensions.get("window");
 
 const SwipeableRow = ({ item, children, onRemove, onBlock }) => {
   const translateX = useRef(new Animated.Value(0)).current;
+
+  // Function to reset the card position
+  const resetPosition = () => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      tension: 150,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
   const actionButtonWidth = 80;
   const totalActionWidth = actionButtonWidth * 2; // Two buttons
   const threshold = 100;
@@ -85,26 +95,14 @@ const SwipeableRow = ({ item, children, onRemove, onBlock }) => {
 
   const handleBlockPress = () => {
     Vibration.vibrate(30);
-    // Animate back to closed position
-    Animated.spring(translateX, {
-      toValue: 0,
-      tension: 150,
-      friction: 10,
-      useNativeDriver: true,
-    }).start();
-    onBlock?.(item.username);
+    // Pass both username and reset function to parent
+    onBlock?.(item.username, resetPosition);
   };
 
   const handleDeletePress = () => {
     Vibration.vibrate([50, 30, 50]);
-    // Animate to fully off screen
-    Animated.timing(translateX, {
-      toValue: -screenWidth,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onRemove?.(item.username);
-    });
+    // Pass both username and reset function to parent
+    onRemove?.(item.username, resetPosition);
   };
 
   return (

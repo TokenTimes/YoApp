@@ -245,6 +245,11 @@ class ApiService {
       body: { username, userToUnblock },
     });
   }
+
+  // Get blocked users list
+  async getBlockedUsers(username) {
+    return this.request(`/users/${username}/blocked`);
+  }
 }
 
 export default new ApiService();

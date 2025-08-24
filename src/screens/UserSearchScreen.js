@@ -112,6 +112,16 @@ const UserSearchScreen = ({ user, onBack, onUserAdded }) => {
           <Ionicons name="checkmark-circle" size={16} color="#10b981" />
           <Text style={styles.alreadyFriendText}>Friends</Text>
         </View>
+      ) : item.isBlocked ? (
+        <View style={[styles.addButton, styles.blockedButton]}>
+          <Ionicons name="ban" size={16} color="#ef4444" />
+          <Text style={styles.blockedText}>Blocked</Text>
+        </View>
+      ) : item.hasBlockedYou ? (
+        <View style={[styles.addButton, styles.blockedByButton]}>
+          <Ionicons name="ban" size={16} color="#6b7280" />
+          <Text style={styles.blockedByText}>Blocks You</Text>
+        </View>
       ) : (
         <TouchableOpacity
           style={[
@@ -381,6 +391,28 @@ const styles = StyleSheet.create({
   },
   alreadyFriendText: {
     color: "#10b981",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  blockedButton: {
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  blockedText: {
+    color: "#ef4444",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  blockedByButton: {
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  blockedByText: {
+    color: "#6b7280",
     fontSize: 14,
     fontWeight: "600",
     marginLeft: 6,

@@ -22,6 +22,7 @@ import SoundService from "../services/sound";
 import { StorageService } from "../utils/storage";
 import FriendSearchScreen from "./FriendSearchScreen";
 import UserSearchScreen from "./UserSearchScreen";
+import BlockedUsersScreen from "./BlockedUsersScreen";
 import SwipeableRow from "../components/SwipeableRow";
 
 const MainScreen = ({ user, onLogout }) => {
@@ -30,7 +31,7 @@ const MainScreen = ({ user, onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [yoNotification, setYoNotification] = useState(null);
   const [sendingYos, setSendingYos] = useState(new Set());
-  const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search"
+  const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search", "blocked"
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredFriends, setFilteredFriends] = useState([]);
 
@@ -60,7 +61,6 @@ const MainScreen = ({ user, onLogout }) => {
 
   const initializeMainScreen = async () => {
     try {
-      await SoundService.initializeSound();
       await loadFriends();
 
       // Always ensure we have a fresh push token
@@ -251,10 +251,20 @@ const MainScreen = ({ user, onLogout }) => {
         newSet.delete(toUsername);
         return newSet;
       });
-      Alert.alert(
-        "Error",
-        error.message || "Failed to send Yo. Please try again."
-      );
+
+      // Show specific error message for blocked users
+      if (error.message && error.message.includes("blocked")) {
+        Alert.alert(
+          "Cannot Send Yo",
+          `${toUsername} has blocked you and cannot receive your Yos.`,
+          [{ text: "OK", style: "default" }]
+        );
+      } else {
+        Alert.alert(
+          "Error",
+          error.message || "Failed to send Yo. Please try again."
+        );
+      }
     }
   };
 
@@ -280,29 +290,57 @@ const MainScreen = ({ user, onLogout }) => {
     }, 3000);
   };
 
-  const handleRemoveFriend = async (friendUsername) => {
-    try {
-      await ApiService.removeFriend(user.username, friendUsername);
+  const handleRemoveFriend = async (friendUsername, resetCardPosition) => {
+    Alert.alert(
+      "Remove Friend",
+      `Are you sure you want to remove ${friendUsername} from your friends? You can always add them back later.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => {
+            // Reset the card position when user cancels
+            resetCardPosition?.();
+          },
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await ApiService.removeFriend(user.username, friendUsername);
 
-      // Remove from local state immediately for instant feedback
-      setFriends((prevFriends) =>
-        prevFriends.filter((friend) => friend.username !== friendUsername)
-      );
+              // Remove from local state immediately for instant feedback
+              setFriends((prevFriends) =>
+                prevFriends.filter(
+                  (friend) => friend.username !== friendUsername
+                )
+              );
 
-      // Show feedback
-      showNotification(`${friendUsername} removed from friends`, "success");
+              // Show feedback
+              showNotification(
+                `${friendUsername} removed from friends`,
+                "success"
+              );
 
-      // Vibration feedback
-      Vibration.vibrate(50);
-    } catch (error) {
-      console.error("Error removing friend:", error);
-      Alert.alert("Error", "Failed to remove friend. Please try again.");
-      // Reload friends list to restore state
-      loadFriends();
-    }
+              // Vibration feedback
+              Vibration.vibrate(50);
+            } catch (error) {
+              console.error("Error removing friend:", error);
+              Alert.alert(
+                "Error",
+                "Failed to remove friend. Please try again."
+              );
+              // Reload friends list to restore state
+              loadFriends();
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const handleBlockUser = async (friendUsername) => {
+  const handleBlockUser = async (friendUsername, resetCardPosition) => {
     Alert.alert(
       "Block User",
       `Are you sure you want to block ${friendUsername}? This will remove them from your friends and prevent further communication.`,
@@ -310,6 +348,10 @@ const MainScreen = ({ user, onLogout }) => {
         {
           text: "Cancel",
           style: "cancel",
+          onPress: () => {
+            // Reset the card position when user cancels
+            resetCardPosition?.();
+          },
         },
         {
           text: "Block",
@@ -367,7 +409,6 @@ const MainScreen = ({ user, onLogout }) => {
         onPress: async () => {
           try {
             SocketService.disconnect();
-            await SoundService.cleanup();
             await StorageService.clearAll();
             onLogout();
           } catch (error) {
@@ -481,6 +522,19 @@ const MainScreen = ({ user, onLogout }) => {
     );
   }
 
+  if (currentScreen === "blocked") {
+    return (
+      <BlockedUsersScreen
+        user={user}
+        onBack={() => {
+          setCurrentScreen("friends");
+          // Refresh friends list when coming back from blocked users
+          loadFriends();
+        }}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" backgroundColor="#713790" />
@@ -496,6 +550,11 @@ const MainScreen = ({ user, onLogout }) => {
             onPress={() => setCurrentScreen("search")}
             style={styles.iconButton}>
             <Ionicons name="add" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setCurrentScreen("blocked")}
+            style={styles.iconButton}>
+            <Ionicons name="ban-outline" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="#fff" />
