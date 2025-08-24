@@ -34,12 +34,12 @@ const MainScreen = ({ user, onLogout }) => {
   const [currentScreen, setCurrentScreen] = useState("friends"); // "friends", "search", "blocked"
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredFriends, setFilteredFriends] = useState([]);
+  const [listKey, setListKey] = useState(0); // Force FlatList re-render
 
   const notificationOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     initializeMainScreen();
-    setupSocketListeners();
     setupNotificationListeners();
 
     return () => {
@@ -97,6 +97,10 @@ const MainScreen = ({ user, onLogout }) => {
       // Connect to socket with push token
       SocketService.connect(user.username, expoPushToken);
 
+      // Set up socket listeners after connection attempt
+      console.log("🔧 Setting up socket listeners after connection...");
+      setupSocketListeners();
+
       // Also update push token via API as backup
       if (expoPushToken) {
         try {
@@ -115,21 +119,87 @@ const MainScreen = ({ user, onLogout }) => {
   };
 
   const setupSocketListeners = () => {
+    console.log("🔧 Setting up socket listeners...");
+    console.log("🔧 Socket connected?", SocketService.isConnected);
+    console.log("🔧 Socket instance exists?", !!SocketService.socket);
+
     // Listen for received Yos
     SocketService.onYoReceived((data) => {
-      console.log("📨 Socket event 'yoReceived' triggered! Data:", data);
+      console.log(
+        "📨 SOCKET EVENT: Yo received from:",
+        data.from,
+        "Full data:",
+        data
+      );
       handleYoReceived(data);
     });
 
     // Listen for Yo sent confirmation
     SocketService.onYoSent((data) => {
-      console.log("Yo sent confirmation:", data);
+      console.log(
+        "📤 SOCKET EVENT: Yo sent to:",
+        data.to,
+        "Success:",
+        data.success,
+        "Full data:",
+        data
+      );
       if (data.success) {
         setSendingYos((prev) => {
           const newSet = new Set(prev);
           newSet.delete(data.to);
           return newSet;
         });
+
+        // Move recipient to top of sender's friends list
+        console.log("🔄 SENDER: Attempting to move recipient to top...");
+        setFriends((prevFriends) => {
+          console.log(
+            "🔄 SENDER: Current friends before reorder:",
+            prevFriends.map((f) => f.username)
+          );
+          console.log("🔄 SENDER: Looking for recipient:", data.to);
+
+          const recipientIndex = prevFriends.findIndex(
+            (friend) => friend.username === data.to
+          );
+
+          console.log("🔄 SENDER: Recipient index found:", recipientIndex);
+
+          if (recipientIndex === -1) {
+            // Recipient not found, just return current list
+            console.log("⚠️ SENDER: Recipient not found in friends list");
+            return prevFriends;
+          }
+
+          if (recipientIndex === 0) {
+            // Already at top, no need to move
+            console.log("🔄 SENDER: Recipient already at top");
+            return prevFriends;
+          }
+
+          // Create a new array with recipient moved to top
+          const newFriends = [...prevFriends];
+          const recipientFriend = newFriends[recipientIndex];
+
+          // Remove recipient from current position
+          newFriends.splice(recipientIndex, 1);
+
+          // Add recipient to the top
+          newFriends.unshift(recipientFriend);
+
+          console.log(
+            "🔄 SENDER: New friends order:",
+            newFriends.map((f) => f.username)
+          );
+          console.log(`✅ SENDER: Moved ${data.to} to top after sending Yo`);
+
+          // Force FlatList re-render
+          setListKey((prev) => prev + 1);
+
+          return newFriends;
+        });
+
         showNotification(`Yo sent to ${data.to}!`, "success");
       } else {
         setSendingYos((prev) => {
@@ -185,9 +255,74 @@ const MainScreen = ({ user, onLogout }) => {
         await PushNotificationService.scheduleLocalNotification(data.from);
       }
 
-      // Refresh friends list to update counters
-      console.log("🔄 Refreshing friends list...");
-      await loadFriends();
+      // Move sender's card to top and update counters instantly
+      console.log("🔄 RECEIVER: Attempting to move sender to top...");
+      setFriends((prevFriends) => {
+        console.log(
+          "🔄 RECEIVER: Current friends before reorder:",
+          prevFriends.map((f) => f.username)
+        );
+        console.log("🔄 RECEIVER: Looking for sender:", data.from);
+
+        // Find the sender in the current friends list
+        const senderIndex = prevFriends.findIndex(
+          (friend) => friend.username === data.from
+        );
+
+        console.log("🔄 RECEIVER: Sender index found:", senderIndex);
+
+        if (senderIndex === -1) {
+          // Sender not found in friends list, refresh the entire list
+          console.log(
+            "⚠️ RECEIVER: Sender not found in friends list, refreshing..."
+          );
+          loadFriends();
+          return prevFriends;
+        }
+
+        if (senderIndex === 0) {
+          // Already at top, just update the count
+          console.log(
+            "🔄 RECEIVER: Sender already at top, just updating count"
+          );
+          const newFriends = [...prevFriends];
+          newFriends[0] = {
+            ...newFriends[0],
+            totalYosReceived:
+              data.totalYos || newFriends[0].totalYosReceived + 1,
+          };
+          return newFriends;
+        }
+
+        // Create a new array with sender moved to top
+        const newFriends = [...prevFriends];
+        const senderFriend = newFriends[senderIndex];
+
+        // Update the total Yo count for the sender
+        const updatedSender = {
+          ...senderFriend,
+          totalYosReceived: data.totalYos || senderFriend.totalYosReceived + 1,
+        };
+
+        // Remove sender from current position
+        newFriends.splice(senderIndex, 1);
+
+        // Add sender to the top
+        newFriends.unshift(updatedSender);
+
+        console.log(
+          "🔄 RECEIVER: New friends order:",
+          newFriends.map((f) => f.username)
+        );
+        console.log(
+          `✅ RECEIVER: Moved ${data.from} to top after receiving Yo`
+        );
+
+        // Force FlatList re-render
+        setListKey((prev) => prev + 1);
+
+        return newFriends;
+      });
 
       console.log("✅ Yo received handling completed successfully");
     } catch (error) {
@@ -199,6 +334,10 @@ const MainScreen = ({ user, onLogout }) => {
     try {
       // Load only friends instead of all users
       const friendsList = await ApiService.getFriends(user.username);
+      console.log(
+        "📋 Loaded friends in order:",
+        friendsList.map((f) => f.username)
+      );
       setFriends(friendsList);
     } catch (error) {
       console.error("Error loading friends:", error);
@@ -639,14 +778,19 @@ const MainScreen = ({ user, onLogout }) => {
           </View>
         ) : (
           <FlatList
+            key={listKey}
             data={filteredFriends}
-            keyExtractor={(item) => item.username}
+            keyExtractor={(item, index) =>
+              `${item.username}-${index}-${item.totalYosReceived}`
+            }
             renderItem={renderFriendItem}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
+            removeClippedSubviews={false}
+            extraData={filteredFriends}
           />
         )}
       </View>

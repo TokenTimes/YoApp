@@ -894,10 +894,41 @@ app.get("/api/friends/:username", async (req, res) => {
     // Get detailed info about friends
     const friends = await User.find(
       { username: { $in: user.friends || [] } },
-      "username isOnline totalYosReceived lastSeen"
-    ).sort({ username: 1 });
+      "username isOnline totalYosReceived lastSeen yosReceived"
+    );
 
-    res.json(friends);
+    // Sort friends by most recent Yo activity (most recent first)
+    // We want to sort by the most recent Yo the current user received FROM each friend
+    const currentUserData = await User.findOne({ username }, "yosReceived");
+
+    const sortedFriends = friends
+      .map((friend) => {
+        // Get the most recent Yo TO the current user FROM this friend
+        const latestYo = currentUserData.yosReceived
+          .filter((yo) => yo.from === friend.username)
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+        return {
+          username: friend.username,
+          isOnline: friend.isOnline,
+          totalYosReceived: friend.totalYosReceived,
+          lastSeen: friend.lastSeen,
+          lastYoTimestamp: latestYo ? latestYo.timestamp : new Date(0), // Use epoch if no Yos
+        };
+      })
+      .sort(
+        (a, b) => new Date(b.lastYoTimestamp) - new Date(a.lastYoTimestamp)
+      );
+
+    // Remove the lastYoTimestamp from the response
+    const friendsResponse = sortedFriends.map((friend) => ({
+      username: friend.username,
+      isOnline: friend.isOnline,
+      totalYosReceived: friend.totalYosReceived,
+      lastSeen: friend.lastSeen,
+    }));
+
+    res.json(friendsResponse);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
